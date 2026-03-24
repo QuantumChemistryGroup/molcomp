@@ -48,11 +48,11 @@ for (i=0;i<N;i++) {
     }
     else {
       //continue;
-      i=2;
+      i=1;
       //printf ("NATOMS = %li\n", NA);
     }	
   }
-//  printf ("%li %s %li %li\n", i, (*coordinates)[(*NATOMS)].El, *NATOMS, j);
+  //printf ("%li %s %li %li\n", i, (*coordinates)[(*NATOMS)].El, *NATOMS, j);
 //	strlwr(s);
   if (i>=0) {
     if (j==0) {
@@ -120,12 +120,26 @@ char str[300];
 // ptr to a string
 char *ptr;
 long int IT =0;
+bool Skip2line = false;
 while( fgets(str, sizeof(str), fp) != NULL ){
 	// just skip the second line - molecule name
+	  bool Skip= false;
+	  if ((Skip2line == true) && (IT == 1))
+	  	{
+	  		Skip=true;
+	  	}
+	  if (Skip == false) 
+	  {
 	if (isBlank(str) == 0) {
 	ptr = strtok(str, " \n\t\r");
 	while (ptr !=NULL) {
 		strcpy((list[*N]), ptr);
+		// check if the first symbol is the number of atoms
+		if (IT == 0 && (*N) == 0) {
+		  if (atoi (ptr) !=0) {
+		    Skip2line = true;
+		  }
+		}
 		(*N)++;
 		list = realloc(list, ((*N)+1)*sizeof(char*) );
 		list[(*N)] = malloc(100*sizeof(char));
@@ -138,6 +152,7 @@ while( fgets(str, sizeof(str), fp) != NULL ){
 		(*N)++;
 		list = realloc(list, ((*N)+1)*sizeof(char*) );
 		list[(*N)] = malloc(100*sizeof(char));
+	}
 	}
 	IT=IT+1;
 }
