@@ -47,6 +47,16 @@ bool READTOPO = false; // read reference topology
 int main(int argc, char *argv[])
 {
 
+// check for arguments
+
+// coordinates of the first atom
+if (argv[1] != NULL && argv[2] != NULL) {
+}
+else {
+  printf ("Files with coordinates are not specified.\n");
+  exit(0);
+}
+
 // allocate the initial molecule.
 long int NAT1 = 0;
 long int NAT2 = 0;
