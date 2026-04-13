@@ -1,0 +1,419 @@
+#!/usr/bin/perl -ws
+
+use Data::Dump 'pp';
+#$Data::Dump::LINEWIDTH = 100;
+
+
+our ($n,$h,$help,$debug, $AW);
+
+if ($h or $help) {
+  (my $program = $0) =~ s/^.*[\/\\]//;
+  print "Align structures each to other.
+Usage: $program [options] file1.xyz file2.xyz > aligned_file.xyz
+       cat *.xyz | $program > aligned_file.xyz
+Dependencies: perl\n
+*.xyz - concatenated xyz-files, usually from IRC.
+These files should have consistent numbering of atoms.
+Each structure is aligned with previous one (without -n option).
+Step between aligned structures (in sqrt(amu)*angstrem) is added 
+to aligned_file.xyz.
+Options:
+-n=N  Each structure is aligned with N-th one. -n is -n=1
+-AW=element1,mass1,element2,mass2...
+-AW or -AW=1 do all mass 1
+  \n";
+  exit;
+}
+
+  # Массы изотопов
+  our %massa = qw(
+  H  1.007947    He 4.0026022   Li 6.9412      Be 9.0121823   B  10.8117
+  C  12.01078    N  14.00672    O  15.99943    F  18.99840325 Ne 20.17976
+  Na 22.9897702  Mg 24.30506    Al 26.9815382  Si 28.08553    P  30.9737612
+  S  32.0655     Cl 35.4532     Ar 39.9481     K  39.09831    Ca 40.0784
+  Sc 44.9559108  Ti 47.8671     V  50.94151    Cr 51.99616    Mn 54.9380499
+  Fe 55.8452     Co 58.9332009  Ni 58.69342    Cu 63.5463     Zn 65.4094
+  Ga 69.7231     Ge 72.641      As 74.921602   Se 78.963      Br 79.9041
+  Kr 83.7982     Rb 85.46783    Sr 87.621      Y  88.905852   Zr 91.2242
+  Nb 92.906382   Mo 95.942      Ru 101.072     Rh 102.905502  Pd 106.421
+  Ag 107.86822   Cd 112.4118    In 114.8183    Sn 118.7107    Sb 121.7601
+  Te 127.603     I  126.904473  Xe 131.2936    Cs 132.905452  Ba 137.3277
+  La 138.90552   Ce 140.1161    Pr 140.907652  Nd 144.243     Sm 150.363
+  Eu 151.9641    Gd 157.253     Tb 158.925342  Dy 162.5001    Ho 164.930322
+  Er 167.2593    Tm 168.934212  Yb 173.043     Lu 174.9671    Hf 178.492
+  Ta 180.94791   W  183.841     Re 186.2071    Os 190.233     Ir 192.2173
+  Pt 195.0782    Au 196.966552  Hg 200.592     Tl 204.38332   Pb 207.21
+  Bi 208.980382  Th 232.03811   Pa 231.035882  U  238.028913
+  );
+  
+  if ($AW) {
+    if ($AW eq '1') {
+      foreach (keys %massa) {
+        $massa{$_} = 1;
+      }
+    }
+    else {
+      my %AW = split ',', $AW;
+      foreach (keys %AW) {
+        $massa{$_} = $AW{$_};
+      }
+    }
+  }
+
+$n ||= 0;
+
+my @mols = read_molden();
+die "Invalid -first=$n\n" if $n>@mols;
+foreach (@mols) {
+  delete $_->[0]{Point};
+  delete $_->[0]{Step};
+  to_centre_mass($_);
+}
+
+for (my $i=0; $i<@mols; $i++) {
+  $mols[$i][0]{Point} = $i+1;
+  my $step;
+  if ($n) {
+    $step = get_rms($mols[$n-1],$mols[$i]);
+  }
+  else {
+    next if $i==0;
+    $step = get_rms($mols[$i-1],$mols[$i]);
+  }
+  
+  $mols[$i][0]{Step} = sprintf "%.3f", $step;
+}
+#pp @mols;
+write_molden(@mols);
+
+sub get_rms {
+ ############################################################################
+ ## Переделанная на перл coord.c Г.Сальникова
+ ## Принимает две ссылки на геометрии (см. read_molden() из conformers)
+ ## Возвращает RMSD между геометриями
+ ## Во вторую ссылку записывает новую, сглаженную геометрию
+ ## Использует глобальный хэш %massa с массами элементов (см. smooth)
+ ############################################################################
+  my ($mol0, $mol1) = @_;
+  my ($i, $n, $rot);
+  my (@m, @x0, @y0, @z0, @x1, @y1, @z1, $xc, $yc, $zc, $e, $e0,
+		$mtot, $tg1, $tg2, $phi, $phix, $phiy, $phiz);
+  my $M_PI = atan2(0,-1);
+  my $FLT_EPSILON = 1e-12;
+  #my $debug = 0;
+  
+  #/*** Input data preparation ***/
+  $n = $#{$mol0};
+  for ($i=0; $i<$n; $i++) {
+    $m[$i] = $massa{$mol0->[$i+1][0]};
+#    if ($massa{$mol1->[$i+1][0]} != $m[$i]) {
+#      pp $mol0,$mol1;
+#    }
+    die "Inconsistent data\n" if $massa{$mol1->[$i+1][0]} != $m[$i];
+    $mtot += $m[$i];
+    $x0[$i] = $mol0->[$i+1][1];
+    $y0[$i] = $mol0->[$i+1][2];
+    $z0[$i] = $mol0->[$i+1][3];
+    $x1[$i] = $mol1->[$i+1][1];
+    $y1[$i] = $mol1->[$i+1][2];
+    $z1[$i] = $mol1->[$i+1][3];
+  }
+  
+  #/*** 1-st translation to center of mass ***/
+
+  $xc = $yc = $zc = 0;
+  for ($i=0; $i<$n; $i++)
+  {
+    $xc += $m[$i]*$x0[$i];
+    $yc += $m[$i]*$y0[$i];
+    $zc += $m[$i]*$z0[$i];
+  }
+  $xc /= $mtot;
+  $yc /= $mtot;
+  $zc /= $mtot;
+
+  for ($i=0; $i<$n; $i++)
+  {
+    $x0[$i] -= $xc;
+    $y0[$i] -= $yc;
+    $z0[$i] -= $zc;
+  }
+
+  if ($debug) {
+    printf ("1-st molecule in center of mass\n");
+    for ($i=0; $i<$n; $i++) {
+      printf "%2.0f   %10f   %10f   %10f\n", $m[$i], 
+              $x0[$i], $y0[$i], $z0[$i];
+    }
+    printf "1-st center of mass translation on: (%10f, %10f, %10f)\n",
+	          -$xc, -$yc, -$zc;
+  }
+
+  #/*** 2-nd translation to center of mass ***/
+
+  $xc = $yc = $zc = 0;
+  for ($i=0; $i<$n; $i++)
+  {
+    $xc += $m[$i]*$x1[$i];
+    $yc += $m[$i]*$y1[$i];
+    $zc += $m[$i]*$z1[$i];
+  }
+  $xc /= $mtot;
+  $yc /= $mtot;
+  $zc /= $mtot;
+
+  for ($i=0; $i<$n; $i++)
+  {
+    $x1[$i] -= $xc;
+    $y1[$i] -= $yc;
+    $z1[$i] -= $zc;
+  }
+
+  if ($debug) {
+    printf ("2-nd molecule in center of mass\n");
+    for ($i=0; $i<$n; $i++) {
+      printf "%2.0f   %10f   %10f   %10f\n", 
+              $m[$i], $x1[$i], $y1[$i], $z1[$i];
+    }
+    printf "2-nd center of mass translation on: (%10f, %10f, %10f)\n",
+	          -$xc, -$yc, -$zc;
+  }
+
+  $e = 0;
+  for ($i=0; $i<$n; $i++) {
+    $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+	       ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+	       ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+  }
+  printf ("2*energy: %g\n", $e) if $debug;
+
+  for ($rot=1; ; $rot++)
+  {
+    $e0 = $e;
+
+    #/*** Rotation around X ***/
+
+    $tg1 = $tg2 = 0;
+    for ($i=0; $i<$n; $i++)
+    {
+      $tg1 += $m[$i]*($y0[$i]*$z1[$i]-$z0[$i]*$y1[$i]);
+      $tg2 += $m[$i]*($y0[$i]*$y1[$i]+$z0[$i]*$z1[$i]);
+    }
+    $phi = atan2 ($tg1, $tg2);
+
+    for ($i=0; $i<$n; $i++)
+    {
+      $yc = $y1[$i]*cos($phi)+$z1[$i]*sin($phi);
+      $zc = $z1[$i]*cos($phi)-$y1[$i]*sin($phi);
+      $y1[$i] = $yc;
+      $z1[$i] = $zc;
+    }
+
+    $e = 0;
+    for ($i=0; $i<$n; $i++) {
+      $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+		 ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+		 ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+    }
+    if ($debug) {
+      for ($i=0; $i<$n; $i++) {
+        printf "%2.0f   %10f   %10f   %10f\n", 
+                $m[$i], $x1[$i], $y1[$i], $z1[$i];
+      }
+      printf "after %d-th rotation around X on: %g (%g deg)\n2*energy: %g\n",
+	            $rot, $phi, $phi*180/$M_PI, $e;
+    }
+
+    $phix = $phi;
+
+    #/*** Rotation around Y ***/
+
+    $tg1 = $tg2 = 0;
+    for ($i=0; $i<$n; $i++)
+    {
+      $tg1 += $m[$i]*($z0[$i]*$x1[$i]-$x0[$i]*$z1[$i]);
+      $tg2 += $m[$i]*($z0[$i]*$z1[$i]+$x0[$i]*$x1[$i]);
+    }
+    $phi = atan2 ($tg1, $tg2);
+
+    for ($i=0; $i<$n; $i++)
+    {
+      $xc = $x1[$i]*cos($phi)-$z1[$i]*sin($phi);
+      $zc = $z1[$i]*cos($phi)+$x1[$i]*sin($phi);
+      $x1[$i] = $xc;
+      $z1[$i] = $zc;
+    }
+
+    $e = 0;
+    for ($i=0; $i<$n; $i++) {
+      $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+		 ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+		 ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+    }
+    if ($debug) {
+      for ($i=0; $i<$n; $i++) {
+        printf "%2.0f   %10f   %10f   %10f\n", 
+                $m[$i], $x1[$i], $y1[$i], $z1[$i];
+      }
+      printf "after %d-th rotation around Y on: %g (%g deg)\n2*energy: %g\n",
+	            $rot, $phi, $phi*180/$M_PI, $e;
+    }
+
+    $phiy = $phi;
+
+    #/*** Rotation around Z ***/
+
+    $tg1 = $tg2 = 0;
+    for ($i=0; $i<$n; $i++)
+    {
+      $tg1 += $m[$i]*($x0[$i]*$y1[$i]-$y0[$i]*$x1[$i]);
+      $tg2 += $m[$i]*($x0[$i]*$x1[$i]+$y0[$i]*$y1[$i]);
+    }
+    $phi = atan2 ($tg1, $tg2);
+
+    for ($i=0; $i<$n; $i++)
+    {
+      $xc = $x1[$i]*cos($phi)+$y1[$i]*sin($phi);
+      $yc = $y1[$i]*cos($phi)-$x1[$i]*sin($phi);
+      $x1[$i] = $xc;
+      $y1[$i] = $yc;
+    }
+
+    $e = 0;
+    for ($i=0; $i<$n; $i++) {
+      $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+		 ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+		 ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+    }
+    if ($debug) {
+      for ($i=0; $i<$n; $i++) {
+        printf "%2.0f   %10f   %10f   %10f\n", 
+               $m[$i], $x1[$i], $y1[$i], $z1[$i];
+      }
+      printf "after %d-th rotation around Z on: %g (%g deg)\n2*energy: %g\n",
+	      $rot, $phi, $phi*180/$M_PI, $e;
+    }
+
+    $phiz = $phi;
+
+    #print "$phix $phiy $phiz\n";
+    #print abs(($e-$e0)/($e+$e0)), "\n";
+    #print "$e == $e0\n";
+    last if (abs($phix) < $FLT_EPSILON &&
+	           abs($phiy) < $FLT_EPSILON &&
+	           abs($phiz) < $FLT_EPSILON &&
+	           ($e == $e0 || abs($e+$e0) < $FLT_EPSILON || (abs(($e-$e0)/($e+$e0)) < $FLT_EPSILON)));
+  }
+
+  #/*** Output data preparation ***/
+
+  for ($i=0; $i<$n; $i++) {
+    $mol1->[$i+1][1] = $x1[$i];
+    $mol1->[$i+1][2] = $y1[$i];
+    $mol1->[$i+1][3] = $z1[$i];
+  }
+  if ($debug) {
+    for ($i=0; $i<$n; $i++) {
+      printf "%2.0f   %10f   %10f   %10f\n", $m[$i], $x1[$i], $y1[$i], $z1[$i];
+    }
+    printf "2*energy: %g\n", $e;
+  }
+
+  #/*** Finished ***/
+  
+  return sqrt($e);
+#  return $e;
+}
+
+sub read_molden {
+ ############################################################################
+ ## Молекула -- ссылка на массив, 0-й элемент -- свойства, следующие - атомы.
+ ## Свойства -- ссылка на хэш с ключами Energy, Symmetry
+ ## Атом -- ссылка на массив [atom, x, y, z, ppm] (ppm может не быть).
+ ##
+ ## Читает xyz. Параметры - имена xyz-файлов. Если параметров нет, то <>.
+ ## Возвращает массив найденных молекул.
+ ############################################################################
+  local @ARGV = @_ ? @_ : @ARGV;
+  my $num = qr/-?\d+(?:\.\d+)?/;
+  my @mols;
+  my $line;
+  LOOP:
+  while ($line || defined($line = <>)) {
+    #print $line;
+    if ($line =~/^\s*(\d+)\s*$/) {
+      my @mol;
+      my $N = $1;
+      last LOOP if eof();
+      next LOOP if eof(ARGV);
+      $line = <>;
+      ($mol[0]{Energy}) = $line =~ /(?:^|)\s($num)(?:\s|$)/o;
+      ($mol[0]{Symmetry}) = $line =~ /symm\S*\s+(\S+)/i;
+      for (my $i=1; $i<=$N; $i++) {
+        last LOOP if eof();
+        next LOOP if eof(ARGV);
+        $line = <>;
+        #print $line;
+        if ($line =~ /^\s*([A-Z]{1,2})\s+($num)\s+($num)\s+($num)\s*(.*)/io) {
+          $mol[$i] = [$1,$2,$3,$4,$5];
+        } else {
+          next LOOP;
+        }
+      }
+      push @mols, \@mol;
+      last LOOP if eof();
+    } else {
+      undef $line;
+    }
+  }
+  return @mols;
+}
+
+sub write_molden {
+  foreach my $mol (@_) {;
+    my $N = $#{$mol};
+    print " $N\n";
+	  print " Energy $mol->[0]{Energy}" if $mol->[0]{Energy};
+	  print "  Symmetry $mol->[0]{Symmetry}" if $mol->[0]{Symmetry};
+	  print "  Ellips $mol->[0]{Ellips}" if $mol->[0]{Ellips};
+	  print "  Point $mol->[0]{Point}" if $mol->[0]{Point};
+	  print "  Step $mol->[0]{Step}" if $mol->[0]{Step};
+	  print "\n";
+	  for (my $i=1; $i<=$N; $i++) {
+      printf " %-2s %12.8f %12.8f %12.8f\n", @{$mol->[$i]}[0..3];
+	  }
+  }
+}
+
+sub to_centre_mass {
+# centre_to_atom($mol)
+# Помещает центр координат молекулы в центр масс
+  my $mol = shift;
+	my $N = $#{$mol};
+  #return undef if $i > $N;
+	
+  my ($x0,$y0,$z0,$M);
+  for (my $i=1; $i<=$N; $i++) {
+	  my $m = $massa{$mol->[$i][0]};
+    $x0 += $m * $mol->[$i][1];
+	  $y0 += $m * $mol->[$i][2];
+	  $z0 += $m * $mol->[$i][3];
+    $M += $m;
+	}
+  $x0 /= $M; 
+  $y0 /= $M; 
+  $z0 /= $M; 
+  
+	for (my $i=1; $i<=$N; $i++) {
+	  $mol->[$i][1] -= $x0;
+    $mol->[$i][2] -= $y0;
+    $mol->[$i][3] -= $z0; 
+	}
+#	my $rms;
+#  for (my $i=1; $i<=$N; $i++) {
+#	  $rms += $massa{$mol->[$i][0]}*($mol->[$i][1]**2+$mol->[$i][2]**2+$mol->[$i][3]**2);
+#	}
+#  return sqrt($rms);
+  return 1;
+}
+

@@ -1,0 +1,1527 @@
+#!/usr/bin/perl -ws
+
+use Data::Dump 'pp'; 
+our ($n,$a,$r,$i,$symm,$ellips,$thin,$XX,$H,$h,$help,$final,$prim,$av,
+$atoms,$atomsH,$noatoms,$noatomsH,$ppm,$ppm_from,$ppmE_from,$del,$cm,$join,
+$full_title,$Name,$irc,$content,$min,$G_from,$ax,$no_hide,$no_H);
+
+if ($h || $help) {
+  (my $prog = $0) =~ s/.*[\/\\]//;
+  print "
+Печатает последнюю xyz-геометрию, либо заданные опцией -n.
+И другие элементарные операции.
+
+Usage: $prog multi.xyz > last.xyz  OR  $prog -i file.xyz
+
+Зависимости: perl, [symmetry]
+
+-n=i,j,...  точки, которые нужно печатать (от 1 до N)
+-n=-i,-j,... нумерация с конца. .. - интервал
+            Например, -n=1,-1 первую и последнюю точки
+            Default -n=-1 (последнюя точка)
+-a Все точки (эквивалентно -n=1..-1)
+-r Все точки в обратном порядке (эквивалентно -n=-1..1)
+
+-del=i,j,... не печатать точки с перечисленными номерами (-n не действует)
+
+-full_title  Не удалять никакие записи из 2-й строки
+
+-Name  Вставить в начало 2-й строки имя зачитываемого xyz-файла
+
+-symm  Во 2-ю строку будет дописана точечная 
+       группа симметрии (требуется программа symmetry)
+       При -symm=2 вдобавок координаты будут симметризованы
+  -final=0.09  see symmetry
+  -prim=0.1    see symmetry
+
+-ellips  Во 2-ю строку будyт дописаны длины осей эллипсоида инерции
+         При -ellips=2 вдобавок координаты будут ориентированы по этим осям
+
+-no_hide  Вращает молекулу вокруг осей x,y с шагом 15° на ±90°, 
+          затем спускается с шагом 1° в оптимум, выбирая такой угол, 
+          при котором атомы в проекции xy не накладываются. 
+        Критерий - минимум суммы по i>j величин 1/rij, 
+          где rij - растояние между проекциями атомов i и j на плоскость xy.
+        -no_hide=10 - добавляются расстояния между атомами и связями, чтобы
+          атомы не накладывались на связи. Заметно медленнее, но помогает.
+        -no_hide=2 - другой критерий, 
+          минимальное расстояние между атомами в проекции xy.
+        -no_hide=3 - атомы в виде шариков и максимизуруется площадь 
+          проекций этих шариков на плоскость xy. Очень медленно.
+      Предполагается, что эта опция будет применяться для как
+      $prog -ellips=2 -no_hide
+      для автоматического рисования молекул скриптом xyz2png
+  -no_H  при -no_hide не учитываюся водороды
+
+-content=T Во 2-ю строку будyт дописаны мольные доли при температуре T 
+      (по умолчанию 298.15 К), вычисленные из энергий по Больцману.
+      Эта опция работает только через трубу:
+      cat *.xyz | xyz -a -content -split
+-unit=hartree|kcal|kJ Единицы энергии. По умолчанию hartree
+
+-cm  Передвинуть центр координат в центр масс
+
+-ax  Переориентирует молекулу, чтобы оси координат в molden'е были как 
+     общепринято (x вверх, y влево, z на нас => x вправо, y вверх, z на нас)
+
+-split  Каждая точка будет записана в отдельный файл NNNN.xyz
+        (если -split=name, то nameNNNN.xyz)
+
+-thin=n  прореживать точки. -thin=n - печатается каждая n-ая точка
+         -thin без параметра эквивалентно -thin=2 (каждая 2-ая точка)
+
+-join=n  Объединить все молекулы из stdin или внутри каждого файла в одну 
+       молекулу. Включается -a (если не задано -n). 
+       cat *.xyzppm | $prog -join=3 -ppm
+       Энергетические параметры Energy HoF Edisp ZPE G суммируются.
+       Молекулы ориентируются по осям эллипсоида инерции (при этом включается
+       -ellips=2) и сдвигаются вдоль наименьшей оси (z). Сдвиг регулируется 
+       параметром -join, представляющим собой число, на которое умножается 
+       сумма длин z-осей эллипсоидов соседних молекул.
+       
+-av=n  усреднять координаты и энергии каждых n точек
+-av или -av=1  усредняет все точки (результат - одна структура)
+       
+-av=n,m  усреднять с перекрытием (m - сдвиг назад). Например, при -av=10,5 
+         усредняются 1..10, 6..15, 11-20 и т.д. (не рекомендуется, лучше -avw)
+         
+-avw=n,p \"оконное\" сглаживание - каждая точка представляется как среднее
+         n окружающих. p - количество проходов, если отсутствует, то 1
+       
+       При -thin, -avw и -av берутся все точки, не действуют -n и -r
+
+-XX  Удалить фиктивные атомы
+
+-atoms=i,j,k,...  Оставить в молекуле только перечисленные атомы
+-atomsH=i,j,k,... вместе с присоединенными к ним атомами водорода
+-noatoms=i,j,k,...  Удалить из молекулы перечисленные атомы
+-noatomsH=i,j,k,... вместе с присоединенными к ним атомами водорода
+
+-H  Удалить водороды
+
+-ppm  Не удалять хим. сдвиги
+-ppm_from=file.xyzppm  Внедрить хим. сдвиги из file.xyzppm. 
+                       При этом включаются опции -ppm и -full_title
+
+-ppmE_from=file.xyzppm  Внедрить хим. сдвиги и энергию из file.xyzppm. 
+
+-G_from=file.H.xyz     Внедрить G и ZPE из file.H.xyz. 
+                       При этом включается опция -full_title
+
+-irc=RMS  превращает xyz оптимизации в IRC-подобную траекторию
+          (гладкую и без длинного хвоста).
+          Удаляет из оптимизации точки, которые выше по энергии, чем 
+          предыдущая и в которых геометрия мало меняется (< RMS).
+      Полезно потом сгладить: $prog -a -irc=1.0 -avw=5 fff.L1.O.xyz
+      
+-min  Эквивалентно -irc=0, т.е. похожесть геомерий не учитывается, 
+                   и последняя точка будет с минимальной энергией.
+      $prog -min fff.xyz (без -a) оставляет только последнюю точку.
+      $prog -i -min fff.xyz  редактирует файл по месту.
+
+-i  Файл редактируется по месту (-split не действует).
+  \n";
+  exit;
+}
+
+  # Массы изотопов
+  our %massa = qw(
+  H  1.007947    He 4.0026022   Li 6.9412      Be 9.0121823   B  10.8117
+  C  12.01078    N  14.00672    O  15.99943    F  18.99840325 Ne 20.17976
+  Na 22.9897702  Mg 24.30506    Al 26.9815382  Si 28.08553    P  30.9737612
+  S  32.0655     Cl 35.4532     Ar 39.9481     K  39.09831    Ca 40.0784
+  Sc 44.9559108  Ti 47.8671     V  50.94151    Cr 51.99616    Mn 54.9380499
+  Fe 55.8452     Co 58.9332009  Ni 58.69342    Cu 63.5463     Zn 65.4094
+  Ga 69.7231     Ge 72.641      As 74.921602   Se 78.963      Br 79.9041
+  Kr 83.7982     Rb 85.46783    Sr 87.621      Y  88.905852   Zr 91.2242
+  Nb 92.906382   Mo 95.942      Ru 101.072     Rh 102.905502  Pd 106.421
+  Ag 107.86822   Cd 112.4118    In 114.8183    Sn 118.7107    Sb 121.7601
+  Te 127.603     I  126.904473  Xe 131.2936    Cs 132.905452  Ba 137.3277
+  La 138.90552   Ce 140.1161    Pr 140.907652  Nd 144.243     Sm 150.363
+  Eu 151.9641    Gd 157.253     Tb 158.925342  Dy 162.5001    Ho 164.930322
+  Er 167.2593    Tm 168.934212  Yb 173.043     Lu 174.9671    Hf 178.492
+  Ta 180.94791   W  183.841     Re 186.2071    Os 190.233     Ir 192.2173
+  Pt 195.0782    Au 196.966552  Hg 200.592     Tl 204.38332   Pb 207.21
+  Bi 208.980382  Th 232.03811   Pa 231.035882  U  238.028913
+  );
+  
+my $symmetry_x = '/usr/local/bin/symmetry';
+unless (-x $symmetry_x) {
+  warn "No symmetry program. Force -symm=0.\n" if $symm;
+  $symm = 0;
+}
+
+if ($i && $i ne '1') {
+  die "Invalid -i option $i\n";
+}
+
+if (defined($content) && $content==1) {
+  $content = 298.15;
+}
+$unit ||= 627.5095;
+$unit = 1 if $unit eq 'kcal';
+$unit = 1/4.184 if $unit eq 'kJ';
+
+$a && ($n = '1..-1') unless $n;
+$r && ($n = '-1..1') unless $n;
+#$thin && ($n = '1..-1');
+$thin = 2 if $thin && $thin==1;
+defined($join) && ($n = '1..-1') unless $n;
+$n ||= -1;
+do {$ppm=1; $full_title=1} if $ppm_from or $ppmE_from;
+
+my $av_shift = 0;
+if ($av && $av =~ /(\d+),(\d+)/) {
+  $av = $1; $av_shift = $2;
+  die "-av=n,m : m must be less than n\n" if $av_shift >= $av;
+}
+#$av = 2 if $av && $av==1;
+
+my $pass = 1;
+if ($avw && $avw =~ /(\d+),(\d+)/) {
+  $avw = $1; $pass = $2;
+  die "Useless smoothing: -avw=1\n" if $avw == 1;
+}
+
+die "or -thin, or -av, or -avw\n" if $thin && $av or $thin && $avw or $avw && $av;
+
+if ($min) {
+  $irc = 0;
+}
+
+my $name = '';
+$name = $split if $split && $split ne '1';
+
+sub do_needed_transformation {
+  my @mol = @_;
+  @mol = irc_like($irc,@mol) if defined $irc;
+  @mol = @mol[grep {!($_%$thin)} 0..$#mol] if $thin;
+  @mol = average_xyz($av,$av_shift, @mol) if $av;
+  @mol = smooth_xyz($avw,$pass, @mol) if $avw;
+  if ($del) {
+    my @del = parse_n($del,$#mol+1);
+    my @n;
+    foreach my $ind (1..$#mol+1) {
+      push @n, $ind unless grep {$_==$ind} @del;
+    }
+    $n = join ',', @n,;
+  }
+  @mol = @mol[map {$_ - 1} parse_n($n,$#mol+1)] if !($thin or $av or $avw);
+  @mol = map {atoms_only($_,$atoms,1)} @mol if $atoms;
+  @mol = map {atoms_only($_,$atomsH,2)} @mol if $atomsH;
+  @mol = map {atoms_only($_,$noatoms,-1)} @mol if $noatoms;
+  @mol = map {atoms_only($_,$noatomsH,-2)} @mol if $noatomsH;
+  @mol = map {symmetr($_)} @mol if $symm;
+  ellips(@mol) if $ellips;
+  @mol = map {no_hide($_)} @mol if $no_hide;
+  to_centre_mass(@mol) if $cm;
+  common_axes(@mol) if $ax;
+  @mol = join_mols(@mol) if defined $join;
+  insert_ppm($ppm_from, @mol) if $ppm_from;
+  insert_ppm($ppmE_from, @mol) if $ppmE_from;
+  insert_G($G_from, @mol) if $G_from;
+  
+  # -H and -XX
+  foreach my $m (@mol) {
+    my @m1 = ($m->[0]);
+    for (my $i=1; $i<@$m; $i++) {
+      $m->[$i][0] = ucfirst(lc $m->[$i][0]) if $m->[$i][0] !~ /^XX$/i;
+      next if $XX && $m->[$i][0] =~ /^XX$/i;
+      next if $H && $m->[$i][0] eq 'H';
+      push @m1, $m->[$i];
+    }
+    $m = \@m1;
+    # pp $m;
+  }
+  return @mol;
+}
+
+unless (@ARGV) {
+  my @mol = (read_molden());
+  @mol = do_needed_transformation(@mol);
+  content($content,$unit, @mol) if $content;
+  #pp @mol;
+  if ($split) {
+    for (my $i=0; $i<@mol; $i++) {
+      write_molden($mol[$i], sprintf("$name%04d.xyz", $i+1));
+    }
+  }
+#  elsif ($join) {
+#    write_molden(join_mols(@mol));
+#  }
+  else {
+    write_molden(@mol);
+  }
+  exit;
+}
+
+foreach my $file (@ARGV) {
+  next if -d $file;
+  my @mol = (read_molden($file));
+  @mol = do_needed_transformation(@mol);
+#  @mol = join_mols(@mol) if $join;
+  if ($i) {
+    write_molden(@mol, "___$file");
+    rename("___$file", $file) or die;
+  }
+  else {
+    if ($split) {
+      for (my $i=0; $i<@mol; $i++) {
+        write_molden($mol[$i], sprintf("$name%04d.xyz", $i+1));
+      }
+    }
+    else {
+      write_molden(@mol);
+    }
+  }
+}
+
+sub parse_n {
+  my ($n,$N) = @_;
+  #warn "$n,  $N\n";
+  $n =~ s/(-\d+)/$N+$1+1/ge;
+  my @vector;
+  foreach (split /,/, $n) {
+    if (/(\d+)\.\.(\d+)/) { # Раскрываем интервалы (i-n)
+		  my @a = $1<=$2 ? $1..$2 : reverse $2..$1;
+		  push @vector, @a;
+	  }
+    else {push @vector, $_}
+  } 
+  #warn "@vector\n";
+  die "$n out of range\n" if grep {$_<0 or $_>$N} @vector;
+  return @vector;
+}
+
+sub read_molden {
+ ############################################################################
+ ## Молекула -- ссылка на массив, 0-й элемент -- свойства, следующие - атомы.
+ ## Свойства -- ссылка на хэш с ключами Energy, Symmetry
+ ## Атом -- ссылка на массив [atom, x, y, z, ppm] (ppm может не быть).
+ ##
+ ## Читает xyz. Параметры - имена xyz-файлов. Если параметров нет, то <>.
+ ## Возвращает массив найденных молекул.
+ ############################################################################
+  local @ARGV = @_ ? @_ : @ARGV;
+  my $fnum = qr/-?\d+(?:\.\d+)?/;
+  my $num = qr/-?\d+\.\d+(?:[eE][+-]?\d+)?/;
+  my @mols;
+  my $line;
+  LOOP:
+  while ($line || defined($line = <>)) {
+    #print $line;
+    if ($line =~/^\s*(\d+)\s*$/) {
+      my @mol;
+      my $N = $1;
+      last LOOP if eof();
+      next LOOP if eof(ARGV);
+      $line = <>;
+      $mol[0]{Title} = $line;
+      ($mol[0]{Energy}) = $line =~ /(?:\s|^|=)($num)(?:\s|$)/;
+      ($mol[0]{Symmetry}) = $line =~ /symm\S*\s+(\S+)/i;
+      ($mol[0]{Charge}) = $line =~ /Charge\s+(-?\d+)/;
+      ($mol[0]{Mult}) = $line =~ /Mult\s+(\d+)/;
+      ($mol[0]{HoF}) = $line =~ /HoF\s+($fnum)/o;
+      ($mol[0]{Edisp}) = $line =~ /Edisp\s+($fnum)/o;
+      ($mol[0]{ZPE}) = $line =~ /ZPE\s+($fnum)/o;
+      ($mol[0]{Dipole}) = $line =~ /Dipole\s+($fnum)/o;
+      ($mol[0]{'g-tenzor'}) = $line =~ /g-tenzor\s+($fnum)/o;
+      while ($line =~ /G\(($fnum)\)\s+($fnum)/g) {
+        push @{$mol[0]{G}}, [$1,$2];
+      }
+      while ($line =~ /Gsolv\((\S+)\)\s+($fnum)/g) {
+        push @{$mol[0]{Gsolv}}, [$1,$2];
+      }
+      $mol[0]{Name} = $ARGV if $Name;
+      
+      for (my $i=1; $i<=$N; $i++) {
+        last LOOP if eof();
+        next LOOP if eof(ARGV);
+        $line = <>;
+        #print $line;
+        if ($line =~ /^\s*([A-Z]{1,2})\s+($num)\s+($num)\s+($num)\s*(.*)/io) {
+          $mol[$i] = [$1,$2,$3,$4,$5];
+        } else {
+          next LOOP;
+        }
+      }
+      push @mols, \@mol;
+      last LOOP if eof();
+    } else {
+      undef $line;
+    }
+  }
+  #pp @mols;
+  return @mols;
+}
+
+sub write_molden {
+  my $oldfh;
+  
+  if (@_ > 1 && !ref($_[-1])) {
+    my $file = pop @_;
+    open F, '>', $file or do {warn "Can't write to $file: $!\n"; return};
+    $oldfh = select F;
+  }
+  
+  foreach my $mol (@_) {
+    #pp $mol;
+    my $N = $#{$mol};
+    print " $N\n";
+	  if ($full_title) {
+      print "$mol->[0]{Title}";
+    }
+    else {
+      $mol->[0]{Dipole} = sprintf("%.2f",$mol->[0]{Dipole}) if defined $mol->[0]{Dipole};
+      print "$mol->[0]{Name}" if defined $mol->[0]{Name};
+      foreach my $f (qw/Energy Charge Mult Symmetry Dipole HoF Edisp Ellips sigma Content ZPE g-tenzor/) {
+        #print "  $f $mol->[0]{$f}";
+        print "  $f $mol->[0]{$f}" if defined $mol->[0]{$f};
+      } 
+      if (defined $mol->[0]{G}) {
+        foreach my $g (@{$mol->[0]{G}}) {
+          next unless $g->[0];
+          print "  G($g->[0]) $g->[1]";
+        } 
+      }
+      if (defined $mol->[0]{Gsolv}) {
+        foreach my $g (@{$mol->[0]{Gsolv}}) {
+          next unless $g->[0];
+          print "  Gsolv($g->[0]) $g->[1]";
+        } 
+      }
+      print "\n";
+    }
+	  for (my $i=1; $i<=$N; $i++) {
+      printf " %-2s %12.8f %12.8f %12.8f", @{$mol->[$i]}[0..3];
+      print "    $mol->[$i][4]" if $ppm && $mol->[$i][4];
+      print "\n";
+	  }
+  }
+  
+  if ($oldfh) {
+    close F;
+    select $oldfh;
+  }
+}
+
+sub symmetr {
+ ############################################################################
+ ## Принимает ссылку на молекулу.
+ ## В свойства дописывает элементы хэша Symmetry => 'группа симметрии'
+ ## Если внешний параметр $symm==2, то координаты будут симметризованы
+ ## Требуется symmetry.
+ ############################################################################
+  
+ 	my $mol = shift;
+  my $N = @$mol - 1;
+  
+  open TINP, ">", "symm.TINP" or warn "Can't write temporary file: $!\n",
+                                 return undef;
+	print TINP " $N\n";
+	for (my $i=1; $i<=$N; $i++) {
+	  print TINP element($mol->[$i][0]), 
+               "  $mol->[$i][1]  $mol->[$i][2]  $mol->[$i][3]\n";
+	}
+	close TINP;
+  
+	# External vars
+  $prim ||= 0.1;
+  $final ||= 0.09;
+  
+  my @arg = ($symmetry_x, '-na', '-primary', $prim, '-final', $final, 'symm.TINP');
+  open OUT, '-|', @arg or warn "Can't run $symmetry_x: $!\n", return undef;
+	while (<OUT>) {
+		if (m/^It seems to be the (\w+) point group$/) {
+		  $mol->[0]{Symmetry} = $1;
+      my $sigma = sym_num($1);
+      $mol->[0]{sigma} = $sigma if $sigma > 1;
+    }
+		if ($symm && $symm==2 && m/^Symmetrized coordinates of all atoms/) {
+      <OUT>; 
+      my $nn = <OUT>; chomp $nn;
+			for (my $i=1; $i<=$nn; $i++) {
+			  my ($nat,$x,$y,$z) = split ' ', <OUT>;
+        #print "$nat,$x,$y,$z\n";
+        $mol->[$i][0] = element($nat);
+        $mol->[$i][1] = $x; $mol->[$i][2] = $y; $mol->[$i][3] = $z; 
+			}
+    }
+	}
+	close OUT;
+  unlink 'symm.TINP';
+  return $mol;
+}
+
+sub sym_num {
+  my $group = shift;
+  my $sigma;
+  if   ($group =~ /^C[1is]$/) { $sigma = 1 }
+  elsif ($group =~ /^C(\d+)/) { $sigma = $1 }
+  elsif ($group =~ /^D(\d+)/) { $sigma = $1*2 }
+  elsif ($group =~ /^S(\d+)/) { $sigma = $1/2 }
+  elsif ($group =~ /^S(\d+)/) { $sigma = $1/2 }
+  elsif ($group =~ /^Dinfh/)  { $sigma = 2 }
+  elsif ($group =~ /^Cinfh/)  { $sigma = 1 }
+  elsif ($group =~ /^T/)      { $sigma = 12 }
+  elsif ($group =~ /^O/)      { $sigma = 24 }
+  elsif ($group =~ /^I/)      { $sigma = 60 }
+  else                        { $sigma = undef }
+}
+
+sub ellips {
+ ############################################################################
+ ## Принимает массив ссылок на молекулы.
+ ## В свойства дописывает элемент хэша Ellips => 'd.dd_d.dd_d.dd',
+ ## где d.dd - длины осей эллипсоида инерции.
+ ## Если внешний параметр $ellips==2, то оси x,y,z будут совпадать
+ ## с осями эллипсоида.
+ ## Использует функции jacobi(), sum(), хэш %massa.
+ ############################################################################
+  
+  #print "\nOrientation of molecula by inertia tenzor\n";
+  
+  foreach my $mol (@_) {
+    
+    my (@m,@atom,@x,@y,@z);
+    my $N = $#{$mol};
+    
+    # Создаем массивы координат и атомных масс
+	  for (my $i=1; $i<=$N; $i++) {
+      $atom[$i] = $mol->[$i][0];
+      $x[$i] = $mol->[$i][1];
+      $y[$i] = $mol->[$i][2];
+      $z[$i] = $mol->[$i][3];
+      $m[$i] = $massa{$atom[$i]};
+	  }
+
+	  # Вычисляем молекулярную массу
+	  my $M = sum(@m[1..$N]);
+	  #print "$M\n";
+
+	  # Перемещаем геометрию в центр масс
+	  my $sum;
+    $sum = sum(map { $x[$_]*$m[$_] } 1..$N)/$M;
+    $_ -= $sum for @x[1..$N];
+    $sum = sum(map { $y[$_]*$m[$_] } 1..$N)/$M;
+    $_ -= $sum for @y[1..$N];
+    $sum = sum(map { $z[$_]*$m[$_] } 1..$N)/$M;
+    $_ -= $sum for @z[1..$N];
+	  #&write_molden;
+
+	  #	Суть: молекулу представляем в виде эллипсоида инерции.
+	  #	Длина главных осей этого эллипсоида определяются собственными значениями 
+	  #	тензора инерции, а их направление - соответствующими собственными векторами. 
+	  #	Г. Голдстейн. Классическая механика. Глава 5.
+
+	  # Вычисляем тензор инерции
+	  # | Ixx Ixy Ixz |
+	  # | Ixy Iyy Iyz |
+	  # | Ixz Iyz Izz |
+	  my (@r2,$Ixx,$Ixy,$Ixz,$Iyy,$Iyz,$Izz);
+    $r2[$_] = $x[$_]**2+$y[$_]**2+$z[$_]**2 for 1..$N;
+	  $Ixx = sum(map {$m[$_]*($r2[$_]-$x[$_]**2)} 1..$N);
+	  $Iyy = sum(map {$m[$_]*($r2[$_]-$y[$_]**2)} 1..$N);
+	  $Izz = sum(map {$m[$_]*($r2[$_]-$z[$_]**2)} 1..$N);
+	  $Ixy = -sum(map {$m[$_]*$x[$_]*$y[$_]} 1..$N);
+	  $Ixz = -sum(map {$m[$_]*$x[$_]*$z[$_]} 1..$N);
+	  $Iyz = -sum(map {$m[$_]*$y[$_]*$z[$_]} 1..$N);
+
+	  #($Ixx,$Ixy,$Ixz,$Iyy,$Iyz,$Izz) = (6,-2,2,5,0,7);
+
+	  #print "Тензор инерции:\n";
+	  #printf "%12.8f %12.8f %12.8f\n%12.8f %12.8f %12.8f\n%12.8f %12.8f %12.8f\n",
+	  #         $Ixx,  $Ixy,  $Ixz,   $Ixy,  $Iyy,  $Iyz,   $Ixz,  $Iyz,  $Izz;
+
+	  my @eigen = reverse jacobi($Ixx,$Ixy,$Ixz,$Iyy,$Iyz,$Izz) or die "Eigen error\n";
+	  #pp(@eigen);
+    my @eigen_num = (sqrt(abs($eigen[0][0])/$M),
+                      sqrt(abs($eigen[1][0])/$M),
+                      sqrt(abs($eigen[2][0])/$M));
+    
+    
+    #write_molden($mol);
+    #pp(@z);
+    if ($ellips == 2) {
+      # Преобразуем геометрию к новой системе координат (собственные вектора)
+      for (my $i=1; $i<=$N; $i++) {
+		    for (0..2) {
+			    $mol->[$i][$_+1] = $x[$i]*$eigen[$_][1][0] + 
+													   $y[$i]*$eigen[$_][1][1] + 
+													   $z[$i]*$eigen[$_][1][2];
+#          print "
+#$mol->[$i][$_+1] = $x[$i]*$eigen[$_][1][0] + 
+#                   $z[$i]*$eigen[$_][1][1] + 
+#                   $y[$i]*$eigen[$_][1][2];
+#          \n";
+		    }
+	    }
+	    $_->[3] *= -1 for @{$mol}[1..$N];
+      #write_molden($mol);
+      
+#      # Чтобы тяжелая часть молекулы была в верхнем правом углу
+#      # Отражаем молекулу, чтобы было больше атомов с отрицательными x,y
+#      my ($xp,$xm,$yp,$ym);
+#      for (my $i=1; $i<=$N; $i++) {
+#        $mol->[$i][1]<0 ? $xm++ : $xp++;
+#        $mol->[$i][2]<0 ? $ym++ : $yp++;
+#        #$mol->[$i][3]<0 ? $zm++ : $zp++;
+#      }
+#      my $reflects = 0;
+#      if ($xp > $xm) {
+#        $_->[1] *= -1 for @{$mol}[1..$N];
+#        $reflects++;
+#      }
+#      if ($yp > $ym) {
+#        $_->[2] *= -1 for @{$mol}[1..$N];
+#        $reflects++;
+#      }
+#      # Чтобы было четное кол-во отражений (не получился энантиомер)
+#      if ($reflects%2) {
+#        $_->[3] *= -1 for @{$mol}[1..$N];
+#      }
+    }
+    
+    $mol->[0]{Ellips} = sprintf '%.2f_%.2f_%.2f', @eigen_num;
+  }
+  return 1;
+}
+	
+sub jacobi {
+ ###########################################################################
+ ## Собственные числа и векторы симметричной матрицы методом Якоби.
+ ## Код из Жориной программы dte (C).
+ ## Принимает массив ($Ixx,$Ixy,$Ixz,$Iyy,$Iyz,$Izz).
+ ## Возвращает отсортированный (по убыванию собств. чисел) массив двухэлементных
+ ## массивов. 1-й элемент - собств. число, 2-й - соответствующий ему вектор.
+ ###########################################################################
+  my @a = ([ $_[0],$_[1],$_[2] ],
+           [ $_[1],$_[3],$_[4] ],
+           [ $_[2],$_[4],$_[5] ]);
+  my ($j, $iq, $ip, $i, $n);
+  my ($tresh, $theta, $tau, $t, $sm, $s, $h, $g, $c);
+  my $maxit = 50;
+
+  $n = 3;
+
+  my @v = ([1,0,0], [0,1,0], [0,0,1]);
+  my @b = my @d = ($a[0][0],$a[1][1],$a[2][2]);
+  my @z = (0,0,0);
+  
+  my $nrot = 0;
+  for ($i=0; $i<$maxit; $i++) {
+    
+    $sm = abs($a[0][1]) + abs($a[0][2]) + abs($a[1][2]);
+    
+    if ($sm == 0) {
+      return sort {$b->[0] <=> $a->[0]}
+			        ([$d[0], [$v[0][0],$v[1][0],$v[2][0]]],
+              [$d[1], [$v[0][1],$v[1][1],$v[2][1]]],
+              [$d[2], [$v[0][2],$v[1][2],$v[2][2]]]);
+    }
+    # The normal return, which relies on 
+    # quadratic convergence to machine underflow. 
+    
+    $tresh = ($i < 4) ? 0.2*$sm/($n*$n) : 0;
+    # ...on the first three sweeps. 
+    # ...thereafter. 
+    
+    for ($ip=0; $ip<$n-1; $ip++) {
+      for ($iq=$ip+1; $iq<$n; $iq++) {
+        $g = 100*abs($a[$ip][$iq]);
+        # After four sweeps, skip the rotation if the off-diagonal element is small. 
+        if ($i>4 && abs($d[$ip])+$g == abs($d[$ip]) && abs($d[$iq])+$g == abs($d[$iq])) {
+          $a[$ip][$iq] = 0;
+        }
+        elsif (abs ($a[$ip][$iq]) > $tresh) {
+          $h = $d[$iq]-$d[$ip];
+          if (abs($h)+$g == abs($h)) {
+            $t = $a[$ip][$iq]/$h;
+          }  # $t = 1/(2theta) 
+          else
+          {
+            $theta = 0.5*$h/$a[$ip][$iq];
+            $t = 1/(abs($theta)+sqrt(1+$theta*$theta));
+            if ($theta < 0) {$t = -$t;}
+          }
+          $c = 1/sqrt(1+$t*$t);
+          $s = $t*$c;
+          $tau = $s/(1+$c);
+          $h = $t*$a[$ip][$iq];
+          $z[$ip] -= $h;
+          $z[$iq] += $h;
+          $d[$ip] -= $h;
+          $d[$iq] += $h;
+          $a[$ip][$iq] = 0;
+          for ($j=0; $j<$ip; $j++) {  # Case of rotations 0 <= $j < p. 
+            $g = $a[$j][$ip]; 
+            $h = $a[$j][$iq];
+            $a[$j][$ip] = $g-$s*($h+$g*$tau);
+            $a[$j][$iq] = $h+$s*($g-$h*$tau);
+          }
+          for ($j=$ip+1; $j<$iq; $j++) {  # Case of rotations p < $j < q. 
+            $g = $a[$ip][$j]; 
+            $h = $a[$j][$iq];
+            $a[$ip][$j] = $g-$s*($h+$g*$tau);
+            $a[$j][$iq] = $h+$s*($g-$h*$tau);
+          }
+          for ($j=$iq+1; $j<$n; $j++) {  # Case of rotations q < $j < $n. 
+            $g = $a[$ip][$j]; 
+            $h = $a[$iq][$j];
+            $a[$ip][$j] = $g-$s*($h+$g*$tau);
+            $a[$iq][$j] = $h+$s*($g-$h*$tau);
+          }
+          for ($j=0; $j<$n; $j++) {
+            $g = $v[$j][$ip]; 
+            $h = $v[$j][$iq];
+            $v[$j][$ip] = $g-$s*($h+$g*$tau);
+            $v[$j][$iq] = $h+$s*($g-$h*$tau);
+          }
+          ++$nrot;
+        }
+      }
+    }
+    for ($ip=0; $ip<$n; $ip++) {
+      $b[$ip] += $z[$ip];
+      $d[$ip] = $b[$ip];      # Update $d with the sum of tapq, 
+      $z[$ip] = 0;        # and reinitialize $z. 
+    }
+  }
+  return undef;
+}
+
+sub sum {
+  my $sum = 0;
+  foreach (@_) {
+    $sum += $_;
+  }
+  return $sum;
+}
+
+sub element {
+ ############################################################################
+ ## Возвращает атомный номер по символу либо символ по номеру
+ ## или undef при отсутствии элемента в таблице Менделеева
+ ############################################################################
+  # Таблица Менделеева
+  my @ATOM = qw (XX
+                 H                                                  He
+                 Li Be                               B  C  N  O  F  Ne
+                 Na Mg                               Al Si P  S  Cl Ar
+                 K  Ca Sc Ti V  Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
+                 Rb Sr Y  Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I  Xe
+                 Cs Ba La
+                         Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb
+                       Lu Hf Ta W  Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn
+                 Fr Ra Ac
+                         Th Pa U  Np Pu Am Cm Bk Cf Es Fm Md No
+									     Lr Rf Db Sg Bh Hs Mt Ds Rg
+                );
+  my $atom = shift;
+  if ($atom=~/^\d+$/) {
+    return undef if $atom > $#ATOM;
+    return $ATOM[$atom];
+  }
+  $atom = ucfirst $atom;
+  my %ATOM;
+  @ATOM{@ATOM} = 0..$#ATOM;
+  return $ATOM{$atom} if exists $ATOM{$atom};
+  return undef;
+}
+
+sub average_xyz {
+  my $n = shift;
+  my $shift = shift;
+  my @mol = @_;
+  $n = @mol if $n==1;
+  my @av_mol;
+  my $N = @{$mol[0]};
+  my $i1 = 0;
+  my $i2 = 0;
+  while (1) {
+    my $av_mol;
+    $i1 = $i2-$shift+1;
+    $i1 = 0 if $i1 < 0;
+    $i2 = $i1+$n-1;
+    $i2 = $#mol if $i2 > $#mol;
+    #warn "$i1..$i2\n";
+    my $nn = $i2-$i1+1;
+    $av_mol->[0]{Energy} = sum(map {$_->[0]{Energy}} @mol[$i1..$i2])/$nn;
+    for (my $j=1; $j<$N; $j++) {
+      $av_mol->[$j][0] = $mol[$i1][$j][0];
+      $av_mol->[$j][1] = sum(map {$_->[$j][1]} @mol[$i1..$i2])/$nn;
+      $av_mol->[$j][2] = sum(map {$_->[$j][2]} @mol[$i1..$i2])/$nn;
+      $av_mol->[$j][3] = sum(map {$_->[$j][3]} @mol[$i1..$i2])/$nn;
+    }
+    push @av_mol, $av_mol;
+    last if $i2 == $#mol;
+  }
+  return @av_mol;
+}
+
+sub smooth_xyz {
+  my $n = shift;
+  my $pass = shift;
+  my @mol = @_;
+  my $N = @{$mol[0]};
+  my $ip = int($n/2);
+  my $im = $n%2 ? $ip : ($ip-1);
+  foreach (1..$pass) {
+    my @smol;
+    for (my $i=0; $i<@mol; $i++) {
+      my $i1 = $i-$im; $i1 = 0 if $i1<0;
+      my $i2 = $i+$ip; $i2 = $#mol if $i2 > $#mol;
+      #warn "$i1..$i2\n";
+      my $nn = $i2-$i1+1;
+      $smol[$i][0]{Energy} = sum(map {$_->[0]{Energy}} @mol[$i1..$i2])/$nn;
+      $smol[$i][0]{Energy} = sprintf("%.2f", $smol[$i][0]{Energy}) if $smol[$i][0]{Energy} !~ /\./;
+      for (my $j=1; $j<$N; $j++) {
+        $smol[$i][$j][0] = $mol[$i][$j][0];
+        $smol[$i][$j][1] = sum(map {$_->[$j][1]} @mol[$i1..$i2])/$nn;
+        $smol[$i][$j][2] = sum(map {$_->[$j][2]} @mol[$i1..$i2])/$nn;
+        $smol[$i][$j][3] = sum(map {$_->[$j][3]} @mol[$i1..$i2])/$nn;
+      }
+    }
+    @mol = @smol;
+  }
+  return @mol;
+}
+
+sub atoms_only {
+  my $mol = $_[0];
+  my @vector = sort {$a<=>$b} parse_n($_[1],scalar(@$mol));
+  @vector = addH($mol, @vector) if abs($_[2])==2;
+  my $N = @$mol-1;
+  if ($_[2] < 0) {
+    my @v = 1..$N;
+    foreach (reverse @vector) {
+      splice @v, $_-1, 1;
+    }
+    @vector = @v;
+  }
+  #print "@vector\n"; exit;
+  
+  my @m = ($mol->[0]);
+  foreach my $i (@vector) {
+    push @m, $mol->[$i];
+  }
+  return \@m;
+}
+
+sub to_centre_mass {
+ # Помещает центр координат молекул в центр масс
+  return 0 unless @_;
+  #pp @_;
+  # Массы изотопов
+  my %massa = qw(
+  H  1.007947    He 4.0026022   Li 6.9412      Be 9.0121823   B  10.8117
+  C  12.01078    N  14.00672    O  15.99943    F  18.99840325 Ne 20.17976
+  Na 22.9897702  Mg 24.30506    Al 26.9815382  Si 28.08553    P  30.9737612
+  S  32.0655     Cl 35.4532     Ar 39.9481     K  39.09831    Ca 40.0784
+  Sc 44.9559108  Ti 47.8671     V  50.94151    Cr 51.99616    Mn 54.9380499
+  Fe 55.8452     Co 58.9332009  Ni 58.69342    Cu 63.5463     Zn 65.4094
+  Ga 69.7231     Ge 72.641      As 74.921602   Se 78.963      Br 79.9041
+  Kr 83.7982     Rb 85.46783    Sr 87.621      Y  88.905852   Zr 91.2242
+  Nb 92.906382   Mo 95.942      Ru 101.072     Rh 102.905502  Pd 106.421
+  Ag 107.86822   Cd 112.4118    In 114.8183    Sn 118.7107    Sb 121.7601
+  Te 127.603     I  126.904473  Xe 131.2936    Cs 132.905452  Ba 137.3277
+  La 138.90552   Ce 140.1161    Pr 140.907652  Nd 144.243     Sm 150.363
+  Eu 151.9641    Gd 157.253     Tb 158.925342  Dy 162.5001    Ho 164.930322
+  Er 167.2593    Tm 168.934212  Yb 173.043     Lu 174.9671    Hf 178.492
+  Ta 180.94791   W  183.841     Re 186.2071    Os 190.233     Ir 192.2173
+  Pt 195.0782    Au 196.966552  Hg 200.592     Tl 204.38332   Pb 207.21
+  Bi 208.980382  Th 232.03811   Pa 231.035882  U  238.028913
+  );
+  
+  foreach my $mol (@_) {
+    my $N = $#{$mol};
+    #return undef if $i > $N;
+    
+    my ($x0,$y0,$z0,$M);
+    for (my $i=1; $i<=$N; $i++) {
+      my $m = $massa{$mol->[$i][0]};
+      $x0 += $m * $mol->[$i][1];
+      $y0 += $m * $mol->[$i][2];
+      $z0 += $m * $mol->[$i][3];
+      $M += $m;
+    }
+    $x0 /= $M; 
+    $y0 /= $M; 
+    $z0 /= $M; 
+    #warn "$x0,$y0,$z0,$M\n";
+    
+    for (my $i=1; $i<=$N; $i++) {
+      $mol->[$i][1] -= $x0;
+      $mol->[$i][2] -= $y0;
+      $mol->[$i][3] -= $z0; 
+    }
+  }
+  return 1;
+}
+
+sub common_axes {
+  foreach my $mol (@_) {
+    for (my $i=1; $i<@$mol; $i++) {
+      my ($x,$y) = ($mol->[$i][1],$mol->[$i][2]);
+      $mol->[$i][1] = $y;
+      $mol->[$i][2] = -$x;
+    }
+  }
+  return 1;
+}
+
+sub addH {
+  my $mol = shift;
+  my @vector = @_;
+
+  # Ковалентные радиусы из Dalton Trans., 2008, 2832-2838
+  my %radius = qw(
+ H 0.31  He 0.28  Li 1.28  Be 0.96   B 0.84   C 0.73   N 0.71   O 0.66   F 0.57  
+Ne 0.58  Na 1.66  Mg 1.41  Al 1.21  Si 1.11   P 1.07   S 1.05  Cl 1.02  Ar 1.06  
+ K 2.03  Ca 1.76  Sc 1.70  Ti 1.60   V 1.53  Cr 1.39  Mn 1.50  Fe 1.44  Co 1.38   
+Ni 1.24  Cu 1.32  Zn 1.22  Ga 1.22  Ge 1.20  As 1.19  Se 1.20  Br 1.20  Kr 1.16  
+Rb 2.20  Sr 1.95   Y 1.90  Zr 1.75  Nb 1.64  Mo 1.54  Tc 1.47  Ru 1.46  Rh 1.42   
+Pd 1.39  Ag 1.45  Cd 1.44  In 1.42  Sn 1.39  Sb 1.39  Te 1.38   I 1.39  Xe 1.40   
+Cs 2.44  Ba 2.15  La 2.07  Ce 2.04  Pr 2.03  Nd 2.01  Pm 1.99  Sm 1.98  Eu 1.98   
+Gd 1.96  Tb 1.94  Dy 1.92  Ho 1.92  Er 1.89  Tm 1.90  Yb 1.87  Lu 1.87  Hf 1.75   
+Ta 1.70   W 1.62  Re 1.51  Os 1.44  Ir 1.41  Pt 1.36  Au 1.36  Hg 1.32  Tl 1.45  
+Pb 1.46  Bi 1.48  Po 1.40  At 1.50  Rn 1.50  Fr 2.60  Ra 2.21  Ac 2.15  Th 2.06  
+Pa 2.00   U 1.96  Np 1.90  Pu 1.87  Am 1.80  Cm 1.69  
+  );
+  
+  my @Hs;
+  foreach my $i (@vector) {
+    next if $mol->[$i][0] eq 'H';
+    for (my $j=1; $j<@$mol; $j++) {
+      next if $mol->[$j][0] ne 'H';
+      next if $i==$j;
+      if (! exists $radius{$mol->[$j][0]}) {
+        warn "Unknown atom $j: $mol->[$j][0]\n";
+        next;
+      }
+      #print dist($mol,$i,$j), ' < ', "($radius{'H'}+$radius{$mol->[$i][0]})", " $i,$j\n";
+      if ( dist($mol,$i,$j) < ($radius{'H'}+$radius{$mol->[$i][0]})*1.2 ) {
+        #print " $i,$j\n";
+        push @Hs, $j;
+      }
+    }
+  }
+  #print "@Hs\n"; exit;
+  return sort {$a<=>$b} (@vector,@Hs); 
+}
+
+sub dist {
+  my ($mol,$i,$j) = @_;
+  my $rij = sqrt(($mol->[$i][1]-$mol->[$j][1])**2 +
+                 ($mol->[$i][2]-$mol->[$j][2])**2 +
+                 ($mol->[$i][3]-$mol->[$j][3])**2 );
+  return $rij;
+}
+
+sub join_mols {
+  my @mols = @_;
+  
+  # Преобразуем координаты
+  $ellips = 2;
+  ellips(@mols);
+  my $zshift = 0;
+  for (my $i=1; $i<@mols; $i++) {
+    my $z0 = $mols[$i-1][0]{Ellips}=~/(\d+\.\d+)/;
+    my $z1 = $mols[$i][0]{Ellips}=~/(\d+\.\d+)/;
+    $zshift += ($z0+$z1)*$join;
+    for (my $j=1; $j<@{$mols[$i]}; $j++) {
+      $mols[$i][$j][3] += $zshift;
+    }
+  }
+  
+  my $T = $mols[0][0]{G}[0][0];
+  my @joined_mol = ({Energy=>0.0, HoF=>0.0, Edisp=>0.0, ZPE=>0.0, G=>[[$T,0.0]]});
+  foreach my $en (keys %{$joined_mol[0]}) {
+    if (grep {! defined $_->[0]{$en}} @mols) {
+      delete $joined_mol[0]{$en};
+    }
+  }
+  #pp @joined_mol;
+  
+  foreach my $mol (@mols) {
+    #pp $mol;
+    my @tmp_mol = @$mol;
+    foreach my $en (keys %{$joined_mol[0]}) {
+      if ($en eq 'G') {
+        $joined_mol[0]{G}[0][1] += ($tmp_mol[0]{G}[0][1] || 0);
+      }
+      else {
+        $joined_mol[0]{$en} += ($tmp_mol[0]{$en} || 0);
+      }
+    }
+    shift @tmp_mol;
+    push @joined_mol, @tmp_mol
+  }
+  return \@joined_mol;
+}
+
+sub insert_ppm {
+  my $xyzppm = shift;
+  die "No $xyzppm\n" unless -f $xyzppm;
+  (my $mol_ppm) = read_molden($xyzppm);
+  #my @mols;
+  foreach my $mol (@_) {
+    if ($mol_ppm->[0]{'g-tenzor'}) {
+      $mol->[0]{Title} =~ s/$/  g-tenzor $mol_ppm->[0]{'g-tenzor'}/;
+    }
+    if (exists $mol_ppm->[0]{'UFC'}) {
+      $mol->[0]{Title} =~ s/$/  UFC $mol_ppm->[0]{'UFC'}/;
+    }
+    if ($ppmE_from) {
+      $mol->[0]{Title} =~ s/Energy \S+/Energy $mol_ppm->[0]{Energy}/;
+    }
+    for (my $i=1; $i<@$mol; $i++) {
+      die "Inconsistent atoms $i\n" if ucfirst($mol->[$i][0]) ne ucfirst($mol_ppm->[$i][0]);
+      $mol->[$i][4] = $mol_ppm->[$i][4];
+    }
+    #push @mols, $mol;
+  }
+  #return @mols;
+  return scalar @_;
+}
+
+sub insert_G {
+  my $G_xyz = shift;
+  die "No $G_xyz\n" unless -f $G_xyz;
+  (my $mol_G) = read_molden($G_xyz);
+  #my @mols;
+  foreach my $mol (@_) {
+    if (exists $mol_G->[0]{G}) {
+      $mol->[0]{G} = $mol_G->[0]{G};
+    }
+    if (exists $mol_G->[0]{ZPE}) {
+      $mol->[0]{ZPE} = $mol_G->[0]{ZPE};
+    }
+    #push @mols, $mol;
+  }
+  #return @mols;
+  return scalar @_;
+}
+
+sub get_rms {
+ ############################################################################
+ ## Переделанная на перл coord.c Г.Сальникова
+ ## Принимает две ссылки на геометрии (см. read_molden() из conformers)
+ ## Возвращает RMSD между геометриями
+ ## Во вторую ссылку записывает новую, сглаженную геометрию
+ ## Использует глобальный хэш %massa с массами элементов (см. smooth)
+ ############################################################################
+  my ($mol0, $mol1) = @_;
+  my ($i, $n, $rot);
+  my (@m, @x0, @y0, @z0, @x1, @y1, @z1, $xc, $yc, $zc, $e, $e0,
+		$mtot, $tg1, $tg2, $phi, $phix, $phiy, $phiz);
+  my $M_PI = atan2(0,-1);
+  my $FLT_EPSILON = 1e-12;
+  #my $debug = 0;
+  
+  #/*** Input data preparation ***/
+  $n = $#{$mol0};
+  for ($i=0; $i<$n; $i++) {
+    $m[$i] = $massa{$mol0->[$i+1][0]};
+    die "Inconsistent data\n" if $massa{$mol1->[$i+1][0]} != $m[$i];
+    $mtot += $m[$i];
+    $x0[$i] = $mol0->[$i+1][1];
+    $y0[$i] = $mol0->[$i+1][2];
+    $z0[$i] = $mol0->[$i+1][3];
+    $x1[$i] = $mol1->[$i+1][1];
+    $y1[$i] = $mol1->[$i+1][2];
+    $z1[$i] = $mol1->[$i+1][3];
+  }
+  
+  #/*** 1-st translation to center of mass ***/
+
+  $xc = $yc = $zc = 0;
+  for ($i=0; $i<$n; $i++)
+  {
+    $xc += $m[$i]*$x0[$i];
+    $yc += $m[$i]*$y0[$i];
+    $zc += $m[$i]*$z0[$i];
+  }
+  $xc /= $mtot;
+  $yc /= $mtot;
+  $zc /= $mtot;
+
+  for ($i=0; $i<$n; $i++)
+  {
+    $x0[$i] -= $xc;
+    $y0[$i] -= $yc;
+    $z0[$i] -= $zc;
+  }
+
+  if ($debug) {
+    printf ("1-st molecule in center of mass\n");
+    for ($i=0; $i<$n; $i++) {
+      printf "%2.0f   %10f   %10f   %10f\n", $m[$i], 
+              $x0[$i], $y0[$i], $z0[$i];
+    }
+    printf "1-st center of mass translation on: (%10f, %10f, %10f)\n",
+	          -$xc, -$yc, -$zc;
+  }
+
+  #/*** 2-nd translation to center of mass ***/
+
+  $xc = $yc = $zc = 0;
+  for ($i=0; $i<$n; $i++)
+  {
+    $xc += $m[$i]*$x1[$i];
+    $yc += $m[$i]*$y1[$i];
+    $zc += $m[$i]*$z1[$i];
+  }
+  $xc /= $mtot;
+  $yc /= $mtot;
+  $zc /= $mtot;
+
+  for ($i=0; $i<$n; $i++)
+  {
+    $x1[$i] -= $xc;
+    $y1[$i] -= $yc;
+    $z1[$i] -= $zc;
+  }
+
+  if ($debug) {
+    printf ("2-nd molecule in center of mass\n");
+    for ($i=0; $i<$n; $i++) {
+      printf "%2.0f   %10f   %10f   %10f\n", 
+              $m[$i], $x1[$i], $y1[$i], $z1[$i];
+    }
+    printf "2-nd center of mass translation on: (%10f, %10f, %10f)\n",
+	          -$xc, -$yc, -$zc;
+  }
+
+  $e = 0;
+  for ($i=0; $i<$n; $i++) {
+    $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+	       ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+	       ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+  }
+  printf ("2*energy: %g\n", $e) if $debug;
+
+  for ($rot=1; ; $rot++)
+  {
+    $e0 = $e;
+
+    #/*** Rotation around X ***/
+
+    $tg1 = $tg2 = 0;
+    for ($i=0; $i<$n; $i++)
+    {
+      $tg1 += $m[$i]*($y0[$i]*$z1[$i]-$z0[$i]*$y1[$i]);
+      $tg2 += $m[$i]*($y0[$i]*$y1[$i]+$z0[$i]*$z1[$i]);
+    }
+    $phi = atan2 ($tg1, $tg2);
+
+    for ($i=0; $i<$n; $i++)
+    {
+      $yc = $y1[$i]*cos($phi)+$z1[$i]*sin($phi);
+      $zc = $z1[$i]*cos($phi)-$y1[$i]*sin($phi);
+      $y1[$i] = $yc;
+      $z1[$i] = $zc;
+    }
+
+    $e = 0;
+    for ($i=0; $i<$n; $i++) {
+      $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+		 ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+		 ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+    }
+    if ($debug) {
+      for ($i=0; $i<$n; $i++) {
+        printf "%2.0f   %10f   %10f   %10f\n", 
+                $m[$i], $x1[$i], $y1[$i], $z1[$i];
+      }
+      printf "after %d-th rotation around X on: %g (%g deg)\n2*energy: %g\n",
+	            $rot, $phi, $phi*180/$M_PI, $e;
+    }
+
+    $phix = $phi;
+
+    #/*** Rotation around Y ***/
+
+    $tg1 = $tg2 = 0;
+    for ($i=0; $i<$n; $i++)
+    {
+      $tg1 += $m[$i]*($z0[$i]*$x1[$i]-$x0[$i]*$z1[$i]);
+      $tg2 += $m[$i]*($z0[$i]*$z1[$i]+$x0[$i]*$x1[$i]);
+    }
+    $phi = atan2 ($tg1, $tg2);
+
+    for ($i=0; $i<$n; $i++)
+    {
+      $xc = $x1[$i]*cos($phi)-$z1[$i]*sin($phi);
+      $zc = $z1[$i]*cos($phi)+$x1[$i]*sin($phi);
+      $x1[$i] = $xc;
+      $z1[$i] = $zc;
+    }
+
+    $e = 0;
+    for ($i=0; $i<$n; $i++) {
+      $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+		 ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+		 ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+    }
+    if ($debug) {
+      for ($i=0; $i<$n; $i++) {
+        printf "%2.0f   %10f   %10f   %10f\n", 
+                $m[$i], $x1[$i], $y1[$i], $z1[$i];
+      }
+      printf "after %d-th rotation around Y on: %g (%g deg)\n2*energy: %g\n",
+	            $rot, $phi, $phi*180/$M_PI, $e;
+    }
+
+    $phiy = $phi;
+
+    #/*** Rotation around Z ***/
+
+    $tg1 = $tg2 = 0;
+    for ($i=0; $i<$n; $i++)
+    {
+      $tg1 += $m[$i]*($x0[$i]*$y1[$i]-$y0[$i]*$x1[$i]);
+      $tg2 += $m[$i]*($x0[$i]*$x1[$i]+$y0[$i]*$y1[$i]);
+    }
+    $phi = atan2 ($tg1, $tg2);
+
+    for ($i=0; $i<$n; $i++)
+    {
+      $xc = $x1[$i]*cos($phi)+$y1[$i]*sin($phi);
+      $yc = $y1[$i]*cos($phi)-$x1[$i]*sin($phi);
+      $x1[$i] = $xc;
+      $y1[$i] = $yc;
+    }
+
+    $e = 0;
+    for ($i=0; $i<$n; $i++) {
+      $e += $m[$i]*(($x1[$i]-$x0[$i])*($x1[$i]-$x0[$i])+
+		 ($y1[$i]-$y0[$i])*($y1[$i]-$y0[$i])+
+		 ($z1[$i]-$z0[$i])*($z1[$i]-$z0[$i]));
+    }
+    if ($debug) {
+      for ($i=0; $i<$n; $i++) {
+        printf "%2.0f   %10f   %10f   %10f\n", 
+               $m[$i], $x1[$i], $y1[$i], $z1[$i];
+      }
+      printf "after %d-th rotation around Z on: %g (%g deg)\n2*energy: %g\n",
+	      $rot, $phi, $phi*180/$M_PI, $e;
+    }
+
+    $phiz = $phi;
+
+    #print "$phix $phiy $phiz\n";
+    #print abs(($e-$e0)/($e+$e0)), "\n";
+    #print "$e == $e0\n";
+    last if (abs($phix) < $FLT_EPSILON &&
+	           abs($phiy) < $FLT_EPSILON &&
+	           abs($phiz) < $FLT_EPSILON &&
+	           ($e == $e0 || abs($e+$e0) < $FLT_EPSILON || (abs(($e-$e0)/($e+$e0)) < $FLT_EPSILON)));
+  }
+
+  #/*** Output data preparation ***/
+
+  for ($i=0; $i<$n; $i++) {
+    $mol1->[$i+1][1] = $x1[$i];
+    $mol1->[$i+1][2] = $y1[$i];
+    $mol1->[$i+1][3] = $z1[$i];
+  }
+  if ($debug) {
+    for ($i=0; $i<$n; $i++) {
+      printf "%2.0f   %10f   %10f   %10f\n", $m[$i], $x1[$i], $y1[$i], $z1[$i];
+    }
+    printf "2*energy: %g\n", $e;
+  }
+
+  #/*** Finished ***/
+  
+  return sqrt($e);
+#  return $e;
+}
+
+sub irc_like {
+  my $rms = shift;
+  my @mol = (shift);
+  my $count = 1;
+  foreach (@_) {
+    if ($count == @_) {
+      push @mol,$_ if $_->[0]{Energy} <= $mol[-1][0]{Energy};
+      last;
+    }
+    next if $_->[0]{Energy} > $mol[-1][0]{Energy};
+    my $rrr = $rms==0 ? 1e6 : get_rms($mol[-1],$_);
+    next if $rrr <= $rms;
+    push @mol,$_;
+    $count++;
+  }
+  return @mol; 
+}
+
+sub content {
+  my $T = shift;
+  my $unit = shift;
+  my @mols = @_;
+  #pp @mols;
+  
+  my @en; 
+  my $min = 1e18;
+  foreach my $mol (@mols) {
+    my $e = $mol->[0]{Energy};
+    return unless defined $e;
+    push @en, $e;
+    $min = $e if $min>$e;
+  }
+  @en = map {$_-$min} @en;
+  #pp @en;
+  
+  my (@fract,$sum);
+  foreach (@en) {
+    my $f = exp(-$_*$unit*1000/1.9872/$T);
+    push @fract, $f;
+    $sum += $f;
+  }
+  @fract = map {$_/$sum} @fract;
+  
+  for (my $i=0; $i<@mols; $i++) {
+    $mols[$i][0]{Content} = sprintf "%.6f", $fract[$i];
+  }
+  
+  return @mols;
+}
+
+sub no_hide {
+  my $mol = shift;
+  return unless $mol;
+  my $step = 15;
+  my $rot = 90;
+  to_centre_mass($mol);
+  my $mol_best;
+  
+  my $bonds;
+  if ($no_hide==10) {
+    for (my $i=1; $i<@$mol; $i++) {
+      next if $no_H && $mol->[$i][0] eq 'H';
+      my ($xi,$yi,$zi) = @{$mol->[$i]}[1..3];
+      for (my $j=$i+1; $j<@$mol; $j++) {
+        next if $no_H && $mol->[$j][0] eq 'H';
+        my ($xj,$yj,$zj) = @{$mol->[$j]}[1..3];
+        ($xi-$xj)**2+($yi-$yj)**2+($zi-$zj)**2 < 3.6 && 
+        push @$bonds, [$i,$j];
+      }
+    }
+  }
+  
+  # Ищем глобальный минимум критерия по вращению вокруг осей x,у
+  # Тупо перебором во всем интервале -rot..rot (есть локальные минимумы)
+  my $n = $rot/$step;
+  my @crits;
+  my $angle_best;
+  my $crit_min = 1e9;
+  #my $crit_max = 0;
+  for (my $i=0; $i<=2*$n; $i++) {
+    my $ax = $i*$step - $rot;
+    my $molx = rot_x($mol,$ax);
+    for (my $j=0; $j<=2*$n; $j++) {
+      my $ay = $j*$step - $rot;
+      my $molxy = rot_y($molx,$ay);
+      my $crit;
+      if    ($no_hide==1) {$crit = crit1($molxy)}
+      elsif ($no_hide==10) {$crit = crit1($molxy,$bonds)}
+      elsif ($no_hide==2) {$crit = crit2($molxy)}
+      elsif ($no_hide==3) {$crit = crit3($molxy)}
+      else {die "Ivalid value of -no_hide\n"};
+      #printf STDERR "%5.0f",$crit;
+      $crits[$i][$j] = $crit; # На всякий случай
+      if ($crit < $crit_min) {
+        $crit_min = $crit;
+        $angle_best = [$ax,$ay];
+        $mol_best = $molxy;
+      }
+    }
+    #warn "\n";
+  }
+  
+  # Спускаемся из окрестностей глобального минимума в сам минимум
+  my %crit;
+  my ($I,$J) = (0,0);
+  $max_rot = $step;
+  $step = 1;
+  my $max_ij = $max_rot/$step;
+  
+  if    ($no_hide==1) {$crit{"0,0"} = crit1($mol_best)}
+  elsif ($no_hide==10) {$crit{"0,0"} = crit1($mol_best,$bonds)}
+  elsif ($no_hide==2) {$crit{"0,0"} = crit2($mol_best)}
+  elsif ($no_hide==3) {$crit{"0,0"} = crit3($mol_best)}
+  else {die "Ivalid value of -no_hide\n"};
+  while (1) {
+    my $crit_min = 1e6;
+    my ($i_min,$j_min) = ($I,$J);
+    foreach ([$I,$J+1],[$I+1,$J],[$I,$J-1],[$I-1,$J]) {
+      my ($i,$j) = @$_;
+      next if defined $crit{"$i,$j"};
+      next if abs($i)>=$max_ij || abs($j)>=$max_ij;
+      my $mol1 = rot_y($mol_best, $i*$step);
+      $mol1 = rot_x($mol1, $j*$step);
+      if    ($no_hide==1) {$crit{"$i,$j"} = crit1($mol1)}
+      elsif ($no_hide==10) {$crit{"$i,$j"} = crit1($mol1,$bonds)}
+      elsif ($no_hide==2) {$crit{"$i,$j"} = crit2($mol1)}
+      elsif ($no_hide==3) {$crit{"$i,$j"} = crit3($mol1)}
+      #printf STDERR "%4d %4d %8.2f\n", $i*$step, $j*$step, crit2($mol1);
+      if ($crit{"$i,$j"} < $crit_min) {
+        $crit_min = $crit{"$i,$j"};
+        $i_min = $i;
+        $j_min = $j;
+#        $mol_best = $mol1;
+      }
+    }
+    if ($crit_min < $crit{"$I,$J"}) {
+      $I = $i_min;
+      $J = $j_min;
+      #printf STDERR "%4d %4d %8.2f\n", $I*$step, $J*$step, $crit{"$I,$J"};
+    }
+    else {
+      #write_molden($mol_best);
+      $mol_best = rot_y($mol_best, $I*$step);
+      $mol_best = rot_x($mol_best, $J*$step);
+      last;
+    }
+  }
+
+  return $mol_best;
+}
+sub crit1 {
+ # Сумма 1/r по всем парам атомов
+  my ($mol,$bonds) = @_;
+  my $sum;
+  for (my $i=1; $i<@$mol; $i++) {
+    next if $no_H && $mol->[$i][0] eq 'H';
+    for (my $j=$i+1; $j<@$mol; $j++) {
+      next if $no_H && $mol->[$j][0] eq 'H';
+      my $r = distxy($mol,$i,$j);
+      $r = 0.01 if $r<0.01;
+      $sum += 1/$r;
+    }
+    if ($bonds) {
+      foreach (@$bonds) {
+        my ($j,$k) = @$_;
+        next if $i==$j or $i==$k;
+        next if distxy($mol,$i,$j) > 1 && distxy($mol,$i,$k) > 1;
+        # Bond proection (xj,yj)-(xk,yk)
+        my ($xj,$yj) = ($mol->[$j][1], $mol->[$j][2]);
+        my ($xk,$yk) = ($mol->[$k][1], $mol->[$k][2]);
+        # Atom proection (xi,yi)
+        my ($xi,$yi) = ($mol->[$i][1], $mol->[$i][2]);
+        # Perpendicular from atom to bond
+        my $xkj = $xk-$xj;
+        my $ykj = $yk-$yj;
+        my $x = ($xkj*$ykj*($yi-$yj)+$xj*$ykj**2+$xi*$xkj**2) / ($ykj**2+$xkj**2);
+        my $y = $ykj*($x-$xj)/$xkj+$yj;
+        # Точка пересечения перпендикуляра с связью должна лежать на связи
+        next if ($x-$xj)/($x-$xk)>0 or ($y-$yj)/($y-$yk)>0;
+  #      next if $xj<$xk ? ($x<$xj || $x>$xk) : ($x>$xj || $x<$xk) or
+  #              $yj<$yk ? ($y<$yj || $y>$yk) : ($y>$yj || $y<$yk);
+        # Длина перпендикуляра
+        my $r = sqrt(($x-$xi)**2+($y-$yi)**2);
+        $r = 0.01 if $r<0.01;
+        $sum += 1/$r;
+      }
+    }
+  }
+  return $sum;
+}
+sub crit2 {
+ # Минимальное расстояние между атомами в проекции xy
+  my $mol = shift;
+  my $rmin = 100;
+  for (my $i=1; $i<@$mol; $i++) {
+    for (my $j=$i+1; $j<@$mol; $j++) {
+      my $r = distxy($mol,$i,$j);
+      if ($r < $rmin) {
+        $rmin = $r;
+      }
+    }
+  }
+  return -$rmin;
+}
+sub crit3 {
+ # Сумма черных пикселов
+  my $mol = shift;
+  my $sum = 0;
+  my $rH = 0.49/2; # Радиус Н
+  my $rC = 0.65/2; # Радиус С
+  #my $rB = 0.38; # Толщина связи
+  my $step = 0.05; # ~10 points per H
+  
+  my ($x_max,$y_max,$x_min,$y_min) = (-1e9,-1e9,1e9,1e9);
+  for (my $i=1; $i<@$mol; $i++) {
+    next if $no_H && $mol->[$i][0] eq 'H';
+    $x_max = $mol->[$i][1] if $x_max < $mol->[$i][1];
+    $y_max = $mol->[$i][2] if $y_max < $mol->[$i][2];
+    $x_min = $mol->[$i][1] if $x_min > $mol->[$i][1];
+    $y_min = $mol->[$i][2] if $y_min > $mol->[$i][2];
+  }
+  #print "$x_max,$y_max,$x_min,$y_min\n"; exit;
+  
+  my $R = $no_H ? $rC/2 : $rH/2;
+  my $X_min = $x_min - $R;
+  my $X_max = $x_max + $R;
+  my $Y_min = $y_min - $R;
+  my $Y_max = $y_max + $R;
+  
+  for (my $x=$X_min; $x<=$X_max; $x+=$step) {
+    for (my $y=$Y_min; $y<=$Y_max; $y+=$step) {
+      #printf STDERR "%6.2f %6.2f\n", $x, $y;
+      for (my $i=1; $i<@$mol; $i++) {
+        my $r = sqrt(($x-$mol->[$i][1])**2+($y-$mol->[$i][2])**2);
+        if ( $r <= ($mol->[$i][0] eq 'H' ? $rH : $rC) ) {
+          $sum++;
+          last;
+        }
+      }
+    }
+  }
+  return -$sum;
+}
+sub distxy {
+  my ($mol,$i,$j) = @_;
+  my $rij = sqrt(($mol->[$i][1]-$mol->[$j][1])**2 +
+                 ($mol->[$i][2]-$mol->[$j][2])**2 );
+  return $rij;
+}
+sub dist2 {
+  my ($mol,$i,$j) = @_;
+  my $r2 = ($mol->[$i][1]-$mol->[$j][1])**2 +
+           ($mol->[$i][2]-$mol->[$j][2])**2 +
+           ($mol->[$i][3]-$mol->[$j][3])**2;
+  return $r2;
+}
+sub rot_x {
+  my ($mol,$degrees) = @_;
+  my @mol1 = ($mol->[0]);
+  my $rad = $degrees/180*3.14159265358979;
+  my $cos = cos($rad);
+  my $sin = sin($rad);
+  for (my $i=1; $i<@$mol; $i++) {
+    my ($y,$z) = ($mol->[$i][2],$mol->[$i][3]);
+    $mol1[$i][0] = $mol->[$i][0];
+    $mol1[$i][1] = $mol->[$i][1];
+    $mol1[$i][2] = $sin*$z+$cos*$y;
+    $mol1[$i][3] = $cos*$z-$sin*$y;
+  }
+  return \@mol1;
+}
+sub rot_y {
+  my ($mol,$degrees) = @_;
+  my @mol1 = ($mol->[0]);
+  my $rad = $degrees/180*3.14159265358979;
+  my $cos = cos($rad);
+  my $sin = sin($rad);
+  for (my $i=1; $i<@$mol; $i++) {
+    my ($x,$z) = ($mol->[$i][1],$mol->[$i][3]);
+    $mol1[$i][0] = $mol->[$i][0];
+    $mol1[$i][1] = $cos*$x-$sin*$z;
+    $mol1[$i][2] = $mol->[$i][2];
+    $mol1[$i][3] = $sin*$x+$cos*$z;
+  }
+  return \@mol1;
+}
