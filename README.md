@@ -38,8 +38,30 @@ mapped atom pair in the two alligned structures (*MaxDist*), ```0.396``` - maxim
 
 9. The resulting folder (```unique-angle```) or file (```filename-unique-angle.xyz```) contains only unique conformers
 ### Characterization of conformer pair (Molcomp standalone use)
+Molcomp standard usage on a pair of conformers:
 
+```/path/to/molcomp file1.xyz file2.xyz```
+Result: ```1.281062``` - RMSD between two structures
 ## Molcomp short manual
+```/path/to/molcomp file1.xyz file2.xyz {options}```
+
+{options}: ```--compare=angle```: prints out *RMSD*, *MaxDist*, and *MaxTors* 
+
+{options}: ```--print=true```: print the coordinates of the first molecule providing the best fit with the second to file ```file1-mod.xyz``` (default: ```--print=false```)
+
+{options}: ```--alg=kabsch```: standard Kabsch algorithm; ```--alg=std```: standard algorithm (orientation along inertia axes, Hungarian renumbering) (default), ```--alg=adv```: advanced algorithm, more computationally expensive, apply for sphere-like molecules
+
+{options}: ```--connect=true```: build connectivity matrix based on covalent radii & use this info for renumering (default); ```connect=false```: do not try to build connectivity matrix, renumering is only pure Hungarian algorithm followed by Kabsch
+
+{options}: ```--verbose=true```: prints out verbose info for debugging; ```--verbose=false``` no verbose printing (default);
+
+{options}: ```--writetopo=true```: write topology to file *topo.txt*. Then this file can be modified to ensure right topology. ```--writetopo=false```: do not write topology file. (default)
+
+{}
+
+
+
+
 
 > [!NOTE]
 > For any inquires, questions, suggestions, etc. do not hesitate to contact us: Yury.Minenkov"at"gmail.com (replace "at" with @)
