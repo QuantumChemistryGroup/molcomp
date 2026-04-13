@@ -28,15 +28,15 @@ are given in one file)
 ```python3 /path/to/your/script/molcomp_11.py file.xyz angle readtopo```
 
 7. The resulting file ```DUPXYZ-angle.txt``` contains conformer pairs determined as duplicates
-8. The resulting file ```dup-angle.txt``` contains structural characterization of revealed conformer pairs:
+8. The resulting file ```dup-angle.txt``` contains structural characterization of a revealed conformer pair:
 
 ```gfn2_conformers_00000040.xyz gfn2_conformers_00000041.xyz 0.012 0.029 0.396 0.0```
 
 Explanation: ```0.012``` - RMSD difference between the two conformers in Angstroem, ```0.029``` - maximum distance between
-mapped atom pair in the two alligned structures, ```0.396``` - maximum difference in dihedral angle in the two conformers, 
-```0.0``` - energy differnce (kcal/mol) between two structures (if energies are provided, otherwise - repulsion energy).
+mapped atom pair in the two alligned structures (*MaxDist*), ```0.396``` - maximum difference in dihedral angle in the two conformers, 
+(*MaxTors*), ```0.0``` - energy differnce (kcal/mol) between two structures (if energies are provided, otherwise - repulsion energy).
 
-9. 
+9. The resulting folder (```unique-angle```) or file (```filename-unique-angle.xyz```) contains only unique conformers
 ### Characterization of conformer pair (Molcomp standalone use)
 
 ## Molcomp short manual
