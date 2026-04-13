@@ -28,7 +28,7 @@ are given in one file)
 ```python3 /path/to/your/script/molcomp_11.py file.xyz angle readtopo```
 
 7. The resulting file ```DUPXYZ-angle.txt``` contains conformer pairs determined as duplicates
-8. The resulting file ```dup-angle.txt``` contain structural characterization of revealed conformer pairs:
+8. The resulting file ```dup-angle.txt``` contains structural characterization of revealed conformer pairs:
 
 ```gfn2_conformers_00000040.xyz gfn2_conformers_00000041.xyz 0.012 0.029 0.396 0.0```
 
