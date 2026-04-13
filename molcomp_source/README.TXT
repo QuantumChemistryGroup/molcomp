@@ -6,4 +6,4 @@ How to compile under Linux:
   Ubuntu: sudo apt install libgsl-dev
 4) Compile code via running:
   bash compile.bash
-5) rename a.out to molcomp (if you like), or just use it as a.out
+5) enjoy using molcomp
