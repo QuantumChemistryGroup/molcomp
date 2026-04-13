@@ -1,4 +1,4 @@
-#How to compile under Linux:#
+#How to compile under Linux:
 
 1) Download folder molcomp_source
 2) Open terminal & go to the downloaded folder
