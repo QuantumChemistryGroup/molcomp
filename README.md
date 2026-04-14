@@ -40,7 +40,7 @@ mapped atom pair in the two alligned structures (*MaxDist*), ```0.396``` - maxim
 ### Characterization of conformer pair (Molcomp standalone use)
 Molcomp standard usage on a pair of conformers:
 
-```/path/to/molcomp file1.xyz file2.xyz```
+```/path/to/molcomp file1.xyz file2.xyz ```
 Result: ```1.281062``` - RMSD between two structures
 ## Molcomp short manual
 ```/path/to/molcomp file1.xyz file2.xyz {options}```
