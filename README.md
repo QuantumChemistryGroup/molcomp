@@ -38,10 +38,15 @@ mapped atom pair in the two alligned structures (*MaxDist*), ```0.396``` - maxim
 
 9. The resulting folder (```unique-angle```) or file (```filename-unique-angle.xyz```) contains only unique conformers
 ### Characterization of conformer pair (Molcomp standalone use)
-Molcomp standard usage on a pair of conformers:
+Molcomp standard usage on a pair of conformers (download *xyz* from *Example*):
 
-```/path/to/molcomp file1.xyz file2.xyz ```
-Result: ```1.281062``` - RMSD between two structures
+```/path/to/molcomp gfn2_conformers_00000694.xyz gfn2_conformers_00000695.xyz --compare=angle ```
+Result: ```0.054380 0.113150 1.076586``` - prints out *RMSD*, *MaxDist*, and *MaxTors*, see main paper for details
+
+```/path/to/molcomp gfn2_conformers_00000694.xyz gfn2_conformers_00000695.xyz --compare=angle ```
+Result: ```0.054380 0.113150 1.076586``` - prints out *RMSD*, *MaxDist*, and *MaxTors*, see main paper for details
+
+
 ## Molcomp short manual
 ```/path/to/molcomp file1.xyz file2.xyz {options}```
 
