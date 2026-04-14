@@ -43,29 +43,31 @@ Molcomp standard usage on a pair of conformers (download *xyz* from *Example*):
 ```/path/to/molcomp gfn2_conformers_00000694.xyz gfn2_conformers_00000695.xyz --compare=angle ```
 Result: ```0.054380 0.113150 1.076586``` - prints out *RMSD*, *MaxDist*, and *MaxTors*, see main paper for details
 
-```/path/to/molcomp gfn2_conformers_00000694.xyz gfn2_conformers_00000695.xyz --compare=angle ```
-Result: ```0.054380 0.113150 1.076586``` - prints out *RMSD*, *MaxDist*, and *MaxTors*, see main paper for details
-
 
 ## Molcomp short manual
 ```/path/to/molcomp file1.xyz file2.xyz {options}```
 
-{options}: ```--compare=angle```: prints out *RMSD*, *MaxDist*, and *MaxTors* 
+```{options}: --compare=angle```: prints out *RMSD*, *MaxDist*, and *MaxTors* 
 
-{options}: ```--print=true```: print the coordinates of the first molecule providing the best fit with the second to file ```file1-mod.xyz``` (default: ```--print=false```)
+```{options}: --print=true```: print the coordinates of the first molecule providing the best fit with the second to file ```file1-mod.xyz``` (default: ```--print=false```)
 
-{options}: ```--alg=kabsch```: standard Kabsch algorithm; ```--alg=std```: standard algorithm (orientation along inertia axes, Hungarian renumbering) (default), ```--alg=adv```: advanced algorithm, more computationally expensive, apply for sphere-like molecules
+```{options}: --alg=kabsch```: standard Kabsch algorithm; ```--alg=std```: standard algorithm (orientation along inertia axes, Hungarian renumbering) (default), ```--alg=adv```: advanced algorithm, more computationally expensive, apply for sphere-like molecules
 
-{options}: ```--connect=true```: build connectivity matrix based on covalent radii & use this info for renumering (default); ```connect=false```: do not try to build connectivity matrix, renumering is only pure Hungarian algorithm followed by Kabsch
+```{options}: --connect=true```: build connectivity matrix based on covalent radii & use this info for renumering (default); ```connect=false```: do not try to build connectivity matrix, renumering is only pure Hungarian algorithm followed by Kabsch
 
-{options}: ```--verbose=true```: prints out verbose info for debugging; ```--verbose=false``` no verbose printing (default);
+```{options}: --verbose=true```: prints out verbose info for debugging; ```--verbose=false``` no verbose printing (default);
 
-{options}: ```--writetopo=true```: write topology to file *topo.txt*. Then this file can be modified to ensure right topology. ```--writetopo=false```: do not write topology file. (default)
+```{options}: --writetopo=true```: write topology to file *topo.txt*. Then this file can be modified to ensure right topology. ```--writetopo=false```: do not write topology file. (default)
 
-{}
+```{options}: --readtopo=true```: read topology from file *topo.txt*. ```--readtopo=false```: do not read topology from file *topo.txt* (default)
 
+```{options}: --keepenantio=true```: do not use reflections that generate stereoisomers, i.e. enantiooisomers will be treated as different structures. ```--keepenantio=false```: also use reflections that generate stereoisomers (default).
 
+```{options}: --bindh2heavy=true```: upon renumbering hydrogen and other univalent atoms are bound to corresponding heavy atoms (default). ```--bindh2heavy=false```: upon renumbering hydrogens and other univalent atoms are renumbered according to the Hungarian algorithm (+graph theory if ```--connect=true```).
 
+```{options}: --parallelidn=false```:  populate the connectivity matrix using no parallel calculations (default); ```--parallelidn=true```: parallel population of the connectivity matrix (good for large molecules)
+
+```{options}: --mol2=false```:  use the connectivity only from the first molecule (default); ```--mol2=true```: use the 1st molecule connectivity info for the first molecule, and 2nd for the 2nd.
 
 
 > [!NOTE]
