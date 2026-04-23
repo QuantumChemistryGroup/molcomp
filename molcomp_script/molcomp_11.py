@@ -239,7 +239,7 @@ def RMSD(j):
 	#print (Conf_E, Conf_E0)
 	option3 = ' --connect=false --alg=std --keepenantio=false'
 	E = ''
-	out = subprocess.check_output(file_path+"/a.out "+Conf_E[0]+' '+Conf_E0+option3, shell=True)
+	out = subprocess.check_output(file_path+"/molcomp "+Conf_E[0]+' '+Conf_E0+option3, shell=True)
 	out = out.decode(encoding)
 	out = re.findall(r"\d*\.?\d+", out)
 	E = float(out[0])
@@ -293,7 +293,7 @@ def parallel_chunk(j):
 					tmp_pair = tuple(tmp_pair)
 					if ( tmp_pair not in all_pairs ):
 						un=un+1
-						out = subprocess.check_output(file_path+"/a.out "+tmp_pair[0]+' '+tmp_pair[1]+option2, shell=True)
+						out = subprocess.check_output(file_path+"/molcomp "+tmp_pair[0]+' '+tmp_pair[1]+option2, shell=True)
 						out = out.decode(encoding)
 						out = re.findall(r"\d*\.?\d+", out)
 						# compare with criterion
