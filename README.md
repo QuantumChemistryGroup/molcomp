@@ -69,6 +69,7 @@ Result: ```0.054380 0.113150 1.076586``` - prints out *RMSD*, *MaxDist*, and *Ma
 
 ```{options}: --mol2=false```:  use the connectivity only from the first molecule (default); ```--mol2=true```: use the 1st molecule connectivity info for the first molecule, and 2nd for the 2nd.
 
+```{options}: --linearthld=5.0```:  threshold for three atoms to be recognized as lying on the same line (linear). Torsions including such group of atoms are excluded from comparison;
 
 > [!NOTE]
 > For any inquires, questions, suggestions, etc. do not hesitate to contact us: Yury.Minenkov"at"gmail.com (replace "at" with @)
