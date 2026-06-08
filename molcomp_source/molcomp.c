@@ -44,6 +44,7 @@ bool MOL2 = false; // use also the connectivity of the second molecule
 bool PLPOPIDN = false; // parallel populate IDN 
 bool WRITETOPO = false; // write 
 bool READTOPO = false; // read reference topology
+double LINEARTHLD = 5.0; // threshold for linearity. Torsions with linear atoms are excluded.
 int main(int argc, char *argv[])
 {
 
@@ -60,9 +61,15 @@ else {
 // allocate the initial molecule.
 long int NAT1 = 0;
 long int NAT2 = 0;
+long int NATDEF = 0;
 
 Atom *coord1 = malloc(1*sizeof(Atom));
 Atom *coord2 = malloc(1*sizeof(Atom));
+// temporary coord to get the default connect
+// and compare it with the modified
+// to ensure the right connectivity is symmetrically kept
+Atom *coorddef = malloc(1*sizeof(Atom));
+
 
 // * Files to read and write  
 FILE *fp;
@@ -207,6 +214,22 @@ for (i=3;i<argc;i++) {
   break;
   }
 }
+
+// linearity threshold
+
+for (i=3;i<argc;i++) {
+  // populate LINEARTHLD
+  // default is 5 degrees
+  if (  strncmp(strlwr(argv[i]), "--linearthld=", 13) == 0) {
+    char *ptr;
+    ptr = strtok(strlwr(argv[i]), "=");
+    // take second argument
+    ptr = strtok(NULL, "=");
+    LINEARTHLD = atof (ptr);
+  break;
+  }
+}
+
 
 for (i=3;i<argc;i++) {
   // populate MOL2
@@ -391,6 +414,10 @@ if (argv[1] != NULL) {
   fp = fopen (argv[1], "r");
   if (fp != NULL) {
     if (VER) printf ("Start reading first input file: %s \n", argv[1]);
+    // just to compare initial & modified connectivity
+    if ((READTOPO==true) && (MOL2 == false) ) {
+      FREAD(fp, &coorddef, &NATDEF);
+    } 
     FREAD(fp, &coord1, &NAT1);
     fclose(fp);
   }
@@ -408,6 +435,10 @@ if (argv[2] != NULL) {
   fp = fopen (argv[2], "r");
   if (fp != NULL) {
     if (VER) printf ("Start reading second input file: %s \n", argv[2]);
+    // just to compare initial & modified connectivity
+    if ((READTOPO==true) && (MOL2 == true)) {
+      FREAD(fp, &coorddef, &NATDEF);
+    } 
     FREAD(fp, &coord2, &NAT2);
     fclose(fp);
   }
@@ -425,7 +456,7 @@ else {
 // check if NATOMS are equal
 long int NATOMS=0;
 if (NAT1 != NAT2) {
-  printf ("NAT1 is not equal to NAT2. Stop.\n");
+  printf ("NAT1 is not equal to NAT2. Stop. %li %li \n", NAT1, NAT2);
   exit(0);
 }
 else {
@@ -441,6 +472,8 @@ if (CONNECT == true) {
     GETCONNECT (&(coord1), NATOMS);
   }
   else {
+    // for comparison get the defalt connect
+    GETCONNECT (&(coorddef), NATOMS);
     fp = fopen ("topo.txt", "r");
     if (fp == NULL) { 
       printf ("FILE WITH TOPOLOGY %s DOES NOT EXIST. STOP.\n", "topo.txt");
@@ -448,6 +481,10 @@ if (CONNECT == true) {
     }
     TXYZREAD (fp, &coord1, NATOMS);
     fclose(fp);
+/*
+It is dangerous to read topo.txt by multiple files: their reference topology is different. Hence, if we add some new bond to the first Li atom in topo.txt, and do not add connection to respective atoms, and if default topo has the same Li bond pattern, it will further discover in topo.txt missing connections to 1, and by checking it with default topo, will go to 1 and remove the bonds. 
+*/    
+    //SYMMETRYCHECKDEF (coorddef, &(coord1), NATOMS);
   }
   SYMMETRYCHECK (&(coord1), NATOMS);
   // compute the connectivity matrix
@@ -485,6 +522,10 @@ if (CONNECT == true) {
       }
       TXYZREAD (fp, &coord2, NATOMS);
       fclose(fp);
+/*
+It is dangerous to read topo.txt by multiple files: their reference topology is different. Hence, if we add some new bond to the first Li atom in topo.txt, and do not add connection to respective atoms, and if default topo has the same Li bond pattern, it will further discover in topo.txt missing connections to 1, and by checking it with default topo, will go to 1 and remove the bonds. 
+*/    
+      //SYMMETRYCHECKDEF (coorddef, &(coord2), NATOMS);
     }
     SYMMETRYCHECK (&(coord2), NATOMS);
     POPADJ (NATOMS, ADJ2, coord2);
@@ -1237,6 +1278,7 @@ for (i=0;i<NAT2;i++){
 
 free(coord1);
 free(coord2);
+free(coorddef);
 free(UnEl);
 free(ElNum);
 free(ElNum0);

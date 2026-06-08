@@ -182,7 +182,8 @@ for (i=0;i<3;i++) {
 
 gsl_vector_free (eval);
 gsl_matrix_free (evec);
+gsl_matrix_free (evectmp);
 gsl_eigen_symmv_free (w);
-
+gsl_permutation_free (p);
 }
 

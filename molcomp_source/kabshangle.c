@@ -247,7 +247,7 @@ for (i=0;i<l;i++) {
   double A21 = ANGLEB(coord2[tors[i].A[0]-1].xyz, coord2[tors[i].A[1]-1].xyz, coord2[tors[i].A[2]-1].xyz);
   double A22 = ANGLEB(coord2[tors[i].A[1]-1].xyz, coord2[tors[i].A[2]-1].xyz, coord2[tors[i].A[3]-1].xyz);
   // threshold for linearity
-  double thld = 1;
+  double thld = LINEARTHLD;
   if ( (fabs(180-A11) < thld) || (fabs(180-A12) < thld) || (fabs(180-A21) < thld) || (fabs(180-A22) < thld)) {
     continue;
   }

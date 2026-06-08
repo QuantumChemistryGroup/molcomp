@@ -5,6 +5,7 @@
 
 extern bool VER;
 extern bool MOL2;
+extern double LINEARTHLD;
 static const double M_PI = 3.14159265358979323846264338327950288;
 
 typedef struct {

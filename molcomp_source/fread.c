@@ -27,7 +27,7 @@ int isBlank (char * line)
   return is_blank;
 }
 void FREAD(FILE * fp, Atom **coordinates, long int *NATOMS) {
-
+rewind(fp);
 // the length of the array of char
 long int N=0;
 // reading the whole file and putting it into array of char

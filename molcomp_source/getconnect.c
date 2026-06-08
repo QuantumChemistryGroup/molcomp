@@ -345,3 +345,72 @@ for (i=0;i<NATOMS;i++) {
 
 }
 
+void SYMMETRYCHECKDEF (Atom *coorddef, Atom **coord1, long int NATOMS) {
+  // start comparison
+  long int i=0;
+  long int j=0;
+  long int k=0;
+  for (i=0;i<NATOMS;i++) {
+    // check if there are any new elements bound compared to previous
+    // if yes, then to ensure that new elements are bound to this one
+    for (j=0;j<(*coord1)[i].nn;j++) {
+      // F - found 
+      bool F = true;
+      F = isvalueinarray((*coord1)[i].n[j], coorddef[i].n, coorddef[i].nn, 0);
+      //printf ("%i %li\n", F, i);
+      if (F == false) {
+        long int m = (*coord1)[i].n[j]-1;
+        //printf ("%li \n", i);
+        // go to this element & check & fix if needed
+        bool F1 = true;
+        F1 = isvalueinarray(i+1, (*coord1)[m].n, (*coord1)[m].nn, 0);
+        if (F1 == false) {
+          (*coord1)[m].nn = (*coord1)[m].nn + 1;
+          long int n = (*coord1)[m].nn;
+          (*coord1)[m].n[n-1] = i+1; 
+        }
+      }
+    }
+    // check if some elements were deleted compared to previous
+    // if yes, ensure that these bonds were removed
+    for (j=0;j<(coorddef)[i].nn;j++) {
+      // F - found 
+      bool F = true;
+      F = isvalueinarray((coorddef)[i].n[j], (*coord1)[i].n, (*coord1)[i].nn, 0);
+      if (F == false) {
+        long int m = (coorddef)[i].n[j]-1;
+        // go to this element & check & fix if needed
+        bool F1 = true;
+        F1 = isvalueinarray(i+1, (*coord1)[m].n, (*coord1)[m].nn, 0);
+        if (F1 == true) {
+          /*
+          for (k=0;k<(*coord1)[m].nn;k++) {
+            printf ("%li ", (*coord1)[m].n[k]);
+          }*/
+          //printf("--\n");
+          (*coord1)[m].nn = (*coord1)[m].nn - 1;
+          long int n = (*coord1)[m].nn;
+          long int new[n];
+          long int count = 0;
+          // go through previous array of bonded
+          // and do not copy elements that has to be deleted
+          for (k=0;k<(*coord1)[m].nn+1;k++) {
+            if ((*coord1)[m].n[k] != i+1) {
+              new[count] = (*coord1)[m].n[k];
+              count = count+1;
+            }
+          }
+          // copy new to (*coord1)[m].n
+          for (k=0;k<(*coord1)[m].nn;k++) {
+              (*coord1)[m].n[k] = new[k];
+            }
+          /* 
+          for (k=0;k<(*coord1)[m].nn;k++) {
+            printf ("%li ", (*coord1)[m].n[k]);
+          }*/
+          //printf("-\n");
+        }
+      }
+    }
+  }
+}
