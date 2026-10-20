@@ -6,7 +6,7 @@
 #include "atominfo.h"
 
 
-int comp(const void* a,const void* b) {
+static inline int comp(const void* a,const void* b) {
   	return *(long int*)a - *(long int*)b;
 }
 
@@ -35,22 +35,24 @@ long int array2[N];
 long int i=0;
 for (i=0;i<N;i++) {
   long int seq1 = coord1[p].n[i]-1;
-  array1[i] = ATOMINFO(coord1[seq1].El).Z;
+  array1[i] = coord1[seq1].Z;
   //printf ("%li ", array1[i]); 
   long int seq2=-1;
   if (MOL2 == false) {
     seq2 = coord1[q].n[i]-1;
-    array2[i] = ATOMINFO(coord1[seq2].El).Z;
+    array2[i] = coord1[seq2].Z;
   }
   else {
     seq2 = coord2[q].n[i]-1;
-    array2[i] = ATOMINFO(coord2[seq2].El).Z;
+    array2[i] = coord2[seq2].Z;
   }
   //printf ("%li ", array2[i]); 
 }
 
 qsort(array1, N, sizeof(long int), comp);
 qsort(array2, N, sizeof(long int), comp);
+
+
 
 for (i=0;i<N;i++) {
   if (array1[i] != array2[i]) {
@@ -69,17 +71,22 @@ return EQ;
 
 void POPADJ (long int NATOMS, long int ADJ[][NATOMS], Atom *coord) {
 
-long int i=0;
+//long int i=0;
 long int j=0;
+long int l=0;
 
-for (i=0;i<NATOMS;i++) {
-  for (j=0;j<NATOMS;j++) {
-    long int l=0;
-    for (l=0;l<coord[j].nn;l++) {
-      if (coord[j].n[l]-1 == i) {
-        ADJ[i][j] = 1;
-      }
-    }
+// populate with zeros
+for (j=0; j<NATOMS; j++) {
+  for (l=0; l<NATOMS; l++) {
+    ADJ[j][l] = 0;
+  }
+}
+
+
+for (j=0; j<NATOMS; j++) {
+  for (l=0; l<coord[j].nn; l++) {
+    long int target_row = coord[j].n[l] - 1;
+    ADJ[target_row][j] = 1;
   }
 }
 
@@ -113,16 +120,16 @@ long int array2[N];
 long int i=0;
 for (i=0;i<N;i++) {
   long int seq1 = coord1[p].n[i]-1;
-  array1[i] = ATOMINFO(coord1[seq1].El).Z;
+  array1[i] = coord1[seq1].Z;
   //printf ("%li ", array1[i]); 
   long int seq2=-1;
   if (MOL2 == false) {
     seq2 = coord1[q].n[i]-1;
-    array2[i] = ATOMINFO(coord1[seq2].El).Z;
+    array2[i] = coord1[seq2].Z;
   }
   else {
     seq2 = coord2[q].n[i]-1;
-    array2[i] = ATOMINFO(coord2[seq2].El).Z;
+    array2[i] = coord2[seq2].Z;
   }
   //printf ("%li ", array2[i]); 
 }
@@ -140,7 +147,7 @@ long int j=0;
 /* BFS search */
 if (EQ != false) {
 // 1 is for p, 2 is for q
-long int n;
+//long int n;
 
 long int visited1[NATOMS];
 long int visited2[NATOMS];
@@ -161,7 +168,7 @@ long int front2 = 0;
 long int rear2 = 0;
 long int start2;
   
-n=NATOMS;
+//n=NATOMS;
 
 start1=p;
 visited1[start1] = 1;
@@ -215,17 +222,19 @@ while ( (front1 < rear1) || (front2 < rear2) ) {
       long int k = pl1arr[j];
       long int m = pl2arr[j];
       // replace to Z
-      pl1arr[j] = ATOMINFO(coord1[k].El).Z;
+      pl1arr[j] = coord1[k].Z;
       if (MOL2 == true) {
-        pl2arr[j] = ATOMINFO(coord2[m].El).Z;
+        pl2arr[j] = coord2[m].Z;
       }
       else {
-        pl2arr[j] = ATOMINFO(coord1[m].El).Z;
+        pl2arr[j] = coord1[m].Z;
       }
     }
     // sorting by Z
     qsort(pl1arr, plind, sizeof(long int), comp);
     qsort(pl2arr, plind, sizeof(long int), comp);
+
+
     // final check 
     for (j=0;j<plind;j++) {
       if (pl1arr[j] != pl2arr[j]) {
@@ -233,6 +242,7 @@ while ( (front1 < rear1) || (front2 < rear2) ) {
         return EQ;
       }
     }
+
     // clean
     for (j=0;j<plind;j++) {
       pl1arr[j] = 0;
@@ -240,52 +250,56 @@ while ( (front1 < rear1) || (front2 < rear2) ) {
     }
     plind=0;
     // start populating - new level
-    pl1arr[plind] = u1;
-    pl2arr[plind] = u2;
-    plind = plind+1;
+      pl1arr[plind] = u1;
+      pl2arr[plind] = u2;
+      plind = plind+1;
   }
   else {
-    pl1arr[plind] = u1;
-    pl2arr[plind] = u2;
-    plind = plind+1;
+      pl1arr[plind] = u1;
+      pl2arr[plind] = u2;
+      plind = plind+1;
   }
   // p
-  for (i=0;i<n;i++) {
-    if (ADJ1[u1][i] == 1 && visited1[i] == 0) {
-      visited1[i] = 1;
-      level1[i] = level1[u1]+1;
-      if (level1[i] > maxl1) {
-        maxl1 = level1[i];
+  for (i=0;i<coord1[u1].nn;i++) {
+    long int idx = coord1[u1].n[i] - 1; // take neighbour directly
+    if (visited1[idx] == 0) {
+      visited1[idx] = 1;
+      level1[idx] = level1[u1]+1;
+      if (level1[idx] > maxl1) {
+        maxl1 = level1[idx];
       }
-      queue1[rear1] = i;
+      queue1[rear1] = idx;
       rear1 = rear1+1;
     }
   }
   pl1 = level1[u1];
-  // q
+// q
+  long int q_i = 0;
   if (MOL2 == false) {
-    for (i=0;i<n;i++) {
-      if (ADJ1[u2][i] == 1 && visited2[i] == 0) {
-        visited2[i] = 1;
-        level2[i] = level2[u2]+1;
-        if (level2[i] > maxl2) {
-          maxl2 = level2[i];
+    for (q_i = 0; q_i < coord1[u2].nn; q_i++) {
+      long int idx = coord1[u2].n[q_i] - 1; // neighbours from coord1
+      if (visited2[idx] == 0) {
+        visited2[idx] = 1;
+        level2[idx] = level2[u2] + 1;
+        if (level2[idx] > maxl2) {
+          maxl2 = level2[idx];
         }
-        queue2[rear2] = i;
-        rear2 = rear2+1;
+        queue2[rear2] = idx;
+        rear2 = rear2 + 1;
       }
     }
   }
   else {
-    for (i=0;i<n;i++) {
-      if (ADJ2[u2][i] == 1 && visited2[i] == 0) {
-        visited2[i] = 1;
-        level2[i] = level2[u2]+1;
-        if (level2[i] > maxl2) {
-          maxl2 = level2[i];
+    for (q_i = 0; q_i < coord2[u2].nn; q_i++) {
+      long int idx = coord2[u2].n[q_i] - 1; // neighbours from coord2
+      if (visited2[idx] == 0) {
+        visited2[idx] = 1;
+        level2[idx] = level2[u2] + 1;
+        if (level2[idx] > maxl2) {
+          maxl2 = level2[idx];
         }
-        queue2[rear2] = i;
-        rear2 = rear2+1;
+        queue2[rear2] = idx;
+        rear2 = rear2 + 1;
       }
     }
   }

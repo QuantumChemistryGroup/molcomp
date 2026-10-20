@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include "maintypes.h"
+#include "atominfo.h"
 #include <string.h>
 #include <ctype.h>
 #include <omp.h>
@@ -545,10 +546,17 @@ It is dangerous to read topo.txt by multiple files: their reference topology is 
     }
   }
 }
+
+/*populate coord1[i].Z and coord1[i].Z*/
+for (i=0;i<NATOMS;i++) {
+  coord1[i].Z = ATOMINFO(coord1[i].El).Z;
+  coord2[i].Z = ATOMINFO(coord2[i].El).Z;
+}
+
 // matrix of identity of atoms p and q
 bool (*IDN)[NATOMS] = malloc (NATOMS*sizeof(*IDN));
 if (CONNECT == true && PLPOPIDN == true) {
-  #pragma omp parallel private (j)
+  #pragma omp parallel private (i,j)
   {
   // fill the matrix
    //printf ("Start IDN.\n");
@@ -558,10 +566,10 @@ if (CONNECT == true && PLPOPIDN == true) {
     for (j=0;j<NATOMS;j++) {
       bool EqEl = false;
       if (MOL2 == true) {
-        if (strcmp(coord1[i].El, coord2[j].El) == 0) EqEl = true;
+        if (coord1[i].Z == coord2[j].Z)  EqEl = true;
       }
       else {
-        if (strcmp(coord1[i].El, coord1[j].El) == 0) EqEl = true;
+        if (coord1[i].Z == coord1[j].Z)  EqEl = true;
       }
       if (EqEl == false) {
         IDN[i][j] = false;
@@ -581,10 +589,10 @@ else if (CONNECT == true && PLPOPIDN == false) {
     for (j=0;j<NATOMS;j++) {
       bool EqEl = false;
       if (MOL2 == true) {
-        if (strcmp(coord1[i].El, coord2[j].El) == 0) EqEl = true;
+        if (coord1[i].Z == coord2[j].Z) EqEl = true;
       }
       else {
-        if (strcmp(coord1[i].El, coord1[j].El) == 0) EqEl = true;
+        if (coord1[i].Z == coord1[j].Z) EqEl = true;
       }
       if (EqEl == false) {
         IDN[i][j] = false;
@@ -797,6 +805,7 @@ if (strcmp(ALG, "std")==0) {
       for (m=0;m<3;m++) {
         coord1tmp[j].xyz[m] = coord1[j].xyz[m]*Imag[i][m];
       }
+      coord1tmp[j].Z = coord1[j].Z;
       if (CONNECT==true) {
         coord1tmp[j].nn = coord1[j].nn;
         long int ind = coord1tmp[j].nn;
@@ -834,6 +843,7 @@ if (strcmp(ALG, "std")==0) {
         for (m=0;m<3;m++) {
           coord1best[j].xyz[m] = coord1tmp[j].xyz[m];
         }
+        coord1best[j].Z = coord1tmp[j].Z;
         if (CONNECT==true) {
           coord1best[j].nn = coord1tmp[j].nn;
           long int ind = coord1best[j].nn;

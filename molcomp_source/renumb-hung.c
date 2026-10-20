@@ -256,19 +256,21 @@ void RENUMBHUNGCONNECT (Atom **coord1tmp, Atom *coord2, long int NATOMS, char (*
   // populate coord (temporary array) according to renumbering
   for (i=0;i<NATOMS;i++) {
     long int it = (*coord1tmp)[i].N;
-    strcpy(coord[it].El,(*coord1tmp)[i].El);
+    /*strcpy(coord[it].El,(*coord1tmp)[i].El);
     for (j=0;j<3;j++) {
       coord[it].xyz[j] = (*coord1tmp)[i].xyz[j];
-    }
+    }*/
+    coord[it] = (*coord1tmp)[i];
     // coord[it].N - will be former number 
     coord[it].N = i;
   }
   // overwrite coord1tmp
   for (i=0;i<NATOMS;i++) {
-    strcpy((*coord1tmp)[i].El, coord[i].El);
+    /*strcpy((*coord1tmp)[i].El, coord[i].El);
     for (j=0;j<3;j++) {
       (*coord1tmp)[i].xyz[j] = coord[i].xyz[j];
-    }
+    }*/
+    (*coord1tmp)[i] = coord[i];
     // coord[it].N - will be former number 
     (*coord1tmp)[i].N = coord[i].N; 
   }
@@ -424,19 +426,21 @@ void RENUMBHUNG (Atom **coord1tmp, Atom *coord2, long int NATOMS, char (*UnEl)[3
   // populate coord (temporary array) according to renumbering
   for (i=0;i<NATOMS;i++) {
     long int it = (*coord1tmp)[i].N;
-    strcpy(coord[it].El,(*coord1tmp)[i].El);
+    /*strcpy(coord[it].El,(*coord1tmp)[i].El);
     for (j=0;j<3;j++) {
       coord[it].xyz[j] = (*coord1tmp)[i].xyz[j];
-    }
+    }*/
+    coord[it] = (*coord1tmp)[i];
     // coord[it].N - will be former number 
     coord[it].N = i;
   }
   // overwrite coord1tmp
   for (i=0;i<NATOMS;i++) {
-    strcpy((*coord1tmp)[i].El, coord[i].El);
+    /*strcpy((*coord1tmp)[i].El, coord[i].El);
     for (j=0;j<3;j++) {
       (*coord1tmp)[i].xyz[j] = coord[i].xyz[j];
-    }
+    }*/
+    (*coord1tmp)[i] = coord[i];
     // coord[it].N - will be former number 
     (*coord1tmp)[i].N = coord[i].N; 
   }
@@ -597,19 +601,21 @@ void RENUMBHUNGGRAPH (Atom **coord1tmp, Atom *coord2, long int NATOMS, char (*Un
   // populate coord (temporary array) according to renumbering
   for (i=0;i<NATOMS;i++) {
     long int it = (*coord1tmp)[i].N;
-    strcpy(coord[it].El,(*coord1tmp)[i].El);
+    /*strcpy(coord[it].El,(*coord1tmp)[i].El);
     for (j=0;j<3;j++) {
       coord[it].xyz[j] = (*coord1tmp)[i].xyz[j];
-    }
+    }*/
+    coord[it] = (*coord1tmp)[i];
     // coord[it].N - will be former number 
     coord[it].N = i;
   }
   // overwrite coord1tmp
   for (i=0;i<NATOMS;i++) {
-    strcpy((*coord1tmp)[i].El, coord[i].El);
+    /*strcpy((*coord1tmp)[i].El, coord[i].El);
     for (j=0;j<3;j++) {
       (*coord1tmp)[i].xyz[j] = coord[i].xyz[j];
-    }
+    }*/
+    (*coord1tmp)[i] = coord[i];
     // coord[it].N - will be former number 
     (*coord1tmp)[i].N = coord[i].N; 
   }
