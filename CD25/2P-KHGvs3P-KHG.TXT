@@ -1,0 +1,210 @@
+
+---
+Tenofovir
+---
+LEN = 0
+
+
+---
+Enzalutamide
+---
+LEN = 0
+
+
+---
+Ezetimibe
+---
+LEN = 0
+
+
+---
+Ibrutinib
+---
+LEN = 0
+
+
+---
+Sitagliptin
+---
+LEN = 0
+
+
+---
+Ritonavir
+---
+LEN = 16
+DIFF: 1
+2P-KHG gfn2_conformers_00000030.xyz   gfn2_conformers_00000117.xyz   0   0.486   2.16   16.971   1.22
+3P-KHG gfn2_conformers_00000030.xyz   gfn2_conformers_00000117.xyz   1   0.486   2.16   16.971   1.22
+DIFF: 2
+2P-KHG gfn2_conformers_00000037.xyz   gfn2_conformers_00000121.xyz   0   0.481   2.129   16.466   1.12
+3P-KHG gfn2_conformers_00000037.xyz   gfn2_conformers_00000121.xyz   1   0.481   2.129   16.466   1.12
+DIFF: 3
+2P-KHG gfn2_conformers_00000050.xyz   gfn2_conformers_00000138.xyz   0   0.457   2.075   17.037   1.08
+3P-KHG gfn2_conformers_00000050.xyz   gfn2_conformers_00000138.xyz   1   0.457   2.075   17.037   1.08
+DIFF: 4
+2P-KHG gfn2_conformers_00000059.xyz   gfn2_conformers_00000142.xyz   0   0.461   2.059   17.655   0.98
+3P-KHG gfn2_conformers_00000059.xyz   gfn2_conformers_00000142.xyz   1   0.461   2.059   17.655   0.98
+DIFF: 5
+2P-KHG gfn2_conformers_00000073.xyz   gfn2_conformers_00000079.xyz   0   0.431   1.827   22.416   0.08
+3P-KHG gfn2_conformers_00000073.xyz   gfn2_conformers_00000079.xyz   1   0.431   1.827   22.416   0.08
+DIFF: 6
+2P-KHG gfn2_conformers_00000074.xyz   gfn2_conformers_00000079.xyz   0   0.441   1.857   22.756   0.08
+3P-KHG gfn2_conformers_00000074.xyz   gfn2_conformers_00000079.xyz   1   0.441   1.857   22.756   0.08
+DIFF: 7
+2P-KHG gfn2_conformers_00000077.xyz   gfn2_conformers_00000174.xyz   0   0.46   2.07   16.945   1.08
+3P-KHG gfn2_conformers_00000077.xyz   gfn2_conformers_00000174.xyz   1   0.46   2.07   16.945   1.08
+DIFF: 8
+2P-KHG gfn2_conformers_00000115.xyz   gfn2_conformers_00000123.xyz   0   0.424   1.828   23.435   0.07
+3P-KHG gfn2_conformers_00000115.xyz   gfn2_conformers_00000123.xyz   1   0.424   1.828   23.435   0.07
+DIFF: 9
+2P-KHG gfn2_conformers_00000132.xyz   gfn2_conformers_00000139.xyz   0   0.398   1.737   23.39   0.06
+3P-KHG gfn2_conformers_00000132.xyz   gfn2_conformers_00000139.xyz   1   0.398   1.737   23.39   0.06
+DIFF: 10
+2P-KHG gfn2_conformers_00000135.xyz   gfn2_conformers_00000144.xyz   0   0.395   1.667   22.047   0.07
+3P-KHG gfn2_conformers_00000135.xyz   gfn2_conformers_00000144.xyz   1   0.395   1.667   22.047   0.07
+DIFF: 11
+2P-KHG gfn2_conformers_00000141.xyz   gfn2_conformers_00000215.xyz   0   0.492   2.104   20.657   0.88
+3P-KHG gfn2_conformers_00000141.xyz   gfn2_conformers_00000215.xyz   1   0.492   2.104   20.657   0.88
+DIFF: 12
+2P-KHG gfn2_conformers_00000207.xyz   gfn2_conformers_00000217.xyz   0   0.438   1.898   23.83   0.11
+3P-KHG gfn2_conformers_00000207.xyz   gfn2_conformers_00000217.xyz   1   0.438   1.898   23.83   0.11
+DIFF: 13
+2P-KHG gfn2_conformers_00000413.xyz   gfn2_conformers_00000506.xyz   0   0.475   1.554   15.057   0.44
+3P-KHG gfn2_conformers_00000413.xyz   gfn2_conformers_00000506.xyz   1   0.475   1.554   15.057   0.44
+DIFF: 14
+2P-KHG gfn2_conformers_00000535.xyz   gfn2_conformers_00000558.xyz   0   0.372   1.585   23.107   0.12
+3P-KHG gfn2_conformers_00000535.xyz   gfn2_conformers_00000558.xyz   1   0.372   1.585   23.107   0.12
+DIFF: 15
+2P-KHG gfn2_conformers_00000601.xyz   gfn2_conformers_00000607.xyz   0   0.487   1.663   15.057   0.03
+3P-KHG gfn2_conformers_00000601.xyz   gfn2_conformers_00000607.xyz   1   0.487   1.663   15.057   0.03
+DIFF: 16
+2P-KHG gfn2_conformers_00000608.xyz   gfn2_conformers_00000642.xyz   0   0.378   1.594   23.848   0.12
+3P-KHG gfn2_conformers_00000608.xyz   gfn2_conformers_00000642.xyz   1   0.378   1.594   23.848   0.12
+
+
+---
+Lisdexamfetamin
+---
+LEN = 0
+
+
+---
+Tamiflu
+---
+LEN = 4
+DIFF: 1
+2P-KHG gfn2_conformers_00000858.xyz   gfn2_conformers_00000927.xyz   0   0.452   1.673   25.52   0.24
+3P-KHG gfn2_conformers_00000858.xyz   gfn2_conformers_00000927.xyz   1   0.452   1.673   25.52   0.24
+DIFF: 2
+2P-KHG gfn2_conformers_00000963.xyz   gfn2_conformers_00001167.xyz   0   0.487   1.66   28.835   0.76
+3P-KHG gfn2_conformers_00000963.xyz   gfn2_conformers_00001167.xyz   1   0.487   1.66   28.835   0.76
+DIFF: 3
+2P-KHG gfn2_conformers_00000979.xyz   gfn2_conformers_00001026.xyz   0   0.463   1.733   25.856   0.16
+3P-KHG gfn2_conformers_00000979.xyz   gfn2_conformers_00001026.xyz   1   0.463   1.733   25.856   0.16
+DIFF: 4
+2P-KHG gfn2_conformers_00000979.xyz   gfn2_conformers_00001027.xyz   0   0.473   1.752   25.818   0.16
+3P-KHG gfn2_conformers_00000979.xyz   gfn2_conformers_00001027.xyz   1   0.473   1.752   25.818   0.16
+
+
+---
+Aripiprazole
+---
+LEN = 0
+
+
+---
+Imatinib
+---
+LEN = 0
+
+
+---
+Ibuprofen
+---
+LEN = 0
+
+
+---
+Penicilin
+---
+LEN = 0
+
+
+---
+Pregabalin
+---
+LEN = 0
+
+
+---
+Celecoxib
+---
+LEN = 0
+
+
+---
+Sofosbuvir
+---
+LEN = 0
+
+
+---
+Lenalidomid
+---
+LEN = 0
+
+
+---
+Esomeprazole
+---
+LEN = 0
+
+
+---
+Chloroquine
+---
+LEN = 0
+
+
+---
+Rosuvastatin
+---
+LEN = 0
+
+
+---
+Duloxetine
+---
+LEN = 0
+
+
+---
+Apixaban
+---
+LEN = 0
+
+
+---
+Guaiol
+---
+LEN = 0
+
+
+---
+Oxycodone
+---
+LEN = 0
+
+
+---
+Rivaroxaban
+---
+LEN = 0
+
+
+---
+Palbociclib
+---
+LEN = 0
+
