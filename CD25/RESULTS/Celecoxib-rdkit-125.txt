@@ -1,0 +1,15 @@
+gfn2_conformers_00000001.xyz   gfn2_conformers_00000002.xyz   1   0.335   0.15   
+gfn2_conformers_00000001.xyz   gfn2_conformers_00000003.xyz   1   0.964   0.37   
+gfn2_conformers_00000001.xyz   gfn2_conformers_00000004.xyz   1   1.05   0.52   
+gfn2_conformers_00000001.xyz   gfn2_conformers_00000005.xyz   1   0.137   1.25   
+gfn2_conformers_00000001.xyz   gfn2_conformers_00000006.xyz   1   1.03   1.99   
+gfn2_conformers_00000002.xyz   gfn2_conformers_00000003.xyz   1   1.013   0.22   
+gfn2_conformers_00000002.xyz   gfn2_conformers_00000004.xyz   1   0.995   0.37   
+gfn2_conformers_00000002.xyz   gfn2_conformers_00000005.xyz   1   0.364   1.1   
+gfn2_conformers_00000002.xyz   gfn2_conformers_00000006.xyz   1   1.069   1.84   
+gfn2_conformers_00000003.xyz   gfn2_conformers_00000004.xyz   1   0.417   0.15   
+gfn2_conformers_00000003.xyz   gfn2_conformers_00000005.xyz   1   0.999   0.88   
+gfn2_conformers_00000003.xyz   gfn2_conformers_00000006.xyz   1   0.294   1.62   
+gfn2_conformers_00000004.xyz   gfn2_conformers_00000005.xyz   1   1.081   0.73   
+gfn2_conformers_00000004.xyz   gfn2_conformers_00000006.xyz   1   0.356   1.47   
+gfn2_conformers_00000005.xyz   gfn2_conformers_00000006.xyz   1   1.05   0.74   
