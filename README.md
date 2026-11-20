@@ -2,7 +2,7 @@
 Conformer deduplication, structural superposition
 
 > [!NOTE]
-> **New in [`Molcomp-v2/`](./Molcomp-v2/):** A standalone, dependency-free **C11 / OpenMP** implementation (`3×–8.6×` faster, zero GSL/Python dependencies, deterministic exact post-pass). For exact reproduction of the benchmarks published in the paper, please use the original root version. 
+> **New in [`Molcomp-v2/`](./Molcomp-v2/):** A standalone, dependency-free **C11 / OpenMP** implementation (`3×–8.6×` faster, zero GSL/Python dependencies, deterministic exact post-pass). For exact reproduction of the benchmarks published in the paper, please use the original root version.
 
 
 ## Prerequisites
