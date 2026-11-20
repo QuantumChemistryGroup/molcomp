@@ -87,4 +87,4 @@ For inquiries, questions, or suggestions: `Yury.Minenkov@gmail.com`
 
 ## Development Note
 
-The C11/OpenMP refactoring, memory-safety fixes, and precomputation architecture in `Molcomp-v2` were developed with AI-assisted coding tools and validated against the reference v1 implementation.
+The C11/OpenMP refactoring, memory-safety fixes, and precomputation architecture in `Molcomp-v2` were developed using AI-assisted coding tools and validated against the reference v1 implementation.
