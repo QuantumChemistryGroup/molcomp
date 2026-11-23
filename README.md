@@ -1,10 +1,12 @@
 # Molcomp
 Conformer deduplication, structural superposition
 
-> [!CAUTION]
-> **🚀 Production Version (`molcomp-v2`):** Standalone, zero-dependency **C11 / OpenMP** implementation — **2.7× to 8.6× faster**, with adaptive RAM management and prebuilt static Linux binaries in [Releases](https://github.com).
+> [!NOTE]
+> ### 🚀 Recommended Production Release: [`molcomp-v2`](https://github.com)
+> **Standalone, dependency-free C11 / OpenMP implementation — 2.7× to 8.6× faster!**
 >
-> *Looking to reproduce the exact benchmark timings from the original manuscript? Use the legacy v1 implementation in this repository.*
+> * Includes adaptive RAM management (`/proc/meminfo` + low-RAM disk streaming) and **prebuilt static Linux x86-64 binaries** on the [Releases](https://github.com/releases) page.
+> * *For exact benchmark reproduction of the original manuscript, use the legacy `v1` code in this repository.*
 
 
 ## Prerequisites
