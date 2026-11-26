@@ -87,4 +87,4 @@ Result: ```0.054380 0.113150 1.076586``` - prints out *RMSD*, *MaxDist*, and *Ma
 > For any inquires, questions, suggestions, etc. do not hesitate to contact us: Yury.Minenkov"at"gmail.com (replace "at" with @)
 
 > **When using this code please cite the following publications:**
-> 1) "Molcomp: a software tool for the structural characterization and deduplication of conformers", A.M. Genaev, A.D. Moshchenkov, A.S. Ryzhako, A.A. Otlyotov, and Y. Minenkov Submitted, 2026 [**Generic reference**]
+> 1) A. M. Genaev, A. D. Moshchenkov, A. S. Ryzhako, A. A. Otlyotov, and Y. Minenkov, “ Molcomp: A Software Tool for the Structural Characterization and Deduplication of Conformers.” Advanced Theory and Simulations 9, no. 12 (2026): e70604. https://doi.org/10.1002/adts.70604
